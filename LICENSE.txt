@@ -1,0 +1,11 @@
+Copyright (c) 2026 Odong Stephen Leslie
+
+All Rights Reserved.
+
+This repository and its contents are the intellectual property of the copyright holder.
+
+No part of this repository may be copied, reproduced, modified, distributed, sublicensed, published, or used in whole or in part without the prior written permission of the copyright holder.
+
+The source code, documentation, design system, user interface concepts, workflows, architecture, and all associated materials are provided for viewing purposes only unless explicit written permission has been granted.
+
+For licensing or partnership enquiries, please contact the copyright holder.

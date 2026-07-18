@@ -3,6 +3,10 @@
    Vanilla JS, hash-based router, no backend. Session state lives in
    sessionStorage only (cleared when the browser tab closes) — appropriate
    for a demo, not a real auth system.
+
+   Session shape: { role, since, geoId, constituencyId, subCountyId, wardId,
+   cellId } — geoId is always one of the canonical ids in CT_DATA.geo; the
+   deeper picks are the same id scheme (see data.js).
    ========================================================================= */
 
 // ---------------------------------------------------------------------------
@@ -19,11 +23,35 @@ const CT_ROLES = {
 function ctGetSession(){
   try { return JSON.parse(sessionStorage.getItem('ct_session') || 'null'); } catch(e){ return null; }
 }
-function ctSetSession(role){
-  sessionStorage.setItem('ct_session', JSON.stringify({ role, since: Date.now() }));
+// Called when the demo sign-in completes (this demo accepts ANY credentials,
+// including blank — there is no real validation). Geography is not chosen
+// yet; the router sends the user to #/geography next.
+function ctCreateSession(role){
+  sessionStorage.setItem('ct_session', JSON.stringify({ role: role, since: Date.now(), geoId: null }));
 }
+function ctUpdateSession(patch){
+  const s = ctGetSession() || {};
+  Object.assign(s, patch);
+  sessionStorage.setItem('ct_session', JSON.stringify(s));
+}
+// Records the geography pick into the session and sends the user home.
+// picks: { geoId, constituencyId?, subCountyId?, wardId?, cellId? }
+function ctSelectGeography(picks){
+  ctUpdateSession({
+    geoId: picks.geoId || null,
+    constituencyId: picks.constituencyId || null,
+    subCountyId: picks.subCountyId || null,
+    wardId: picks.wardId || null,
+    cellId: picks.cellId || null
+  });
+  const s = ctGetSession();
+  location.hash = CT_ROLES[s.role].home;
+}
+// Logout fully clears session state — INCLUDING any pending role pick — so a
+// fresh login always starts back at role selection.
 function ctLogout(){
   sessionStorage.removeItem('ct_session');
+  sessionStorage.removeItem('ct_pending_role');
   location.hash = '#/login';
 }
 function ctSetPendingRole(role){
@@ -33,6 +61,22 @@ function ctSetPendingRole(role){
 function ctGetPendingRole(){
   return sessionStorage.getItem('ct_pending_role');
 }
+
+// ---------------------------------------------------------------------------
+// NICE-UG LOGO — inline SVG data URI so the four delivered files are fully
+// self-contained (the original referenced an external NICE_UG_Logo.png that
+// was not part of the uploaded file set).
+// ---------------------------------------------------------------------------
+const CT_NICE_UG_LOGO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 40">' +
+  '<rect x="0" y="0" width="96" height="40" rx="8" fill="#ffffff"/>' +
+  '<rect x="0" y="0" width="96" height="40" rx="8" fill="none" stroke="#DEDBD1"/>' +
+  '<rect x="8" y="9" width="30" height="7" fill="#1A1A1A"/>' +
+  '<rect x="8" y="17" width="30" height="7" fill="#FCDC04"/>' +
+  '<rect x="8" y="25" width="30" height="7" fill="#D21034"/>' +
+  '<text x="44" y="26" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" fill="#1A1A1A">NICE-UG</text>' +
+  '</svg>'
+);
 
 // ---------------------------------------------------------------------------
 // TOAST — "Demo Mode" confirmations for every simulated submission
@@ -60,13 +104,14 @@ function ctDemoModeToast(action){
 // Every clickable dashboard element resolves to one of these two — nothing
 // is a dead click.
 // ---------------------------------------------------------------------------
-function ctOpenModal(innerHtml){
+function ctOpenModal(innerHtml, opts){
+  opts = opts || {};
   ctCloseModal();
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.id = 'ctModalOverlay';
   overlay.onclick = function(e){ if (e.target === overlay) ctCloseModal(); };
-  overlay.innerHTML = '<div class="modal-box" style="position:relative;">' +
+  overlay.innerHTML = '<div class="modal-box' + (opts.wide ? ' modal-wide' : '') + '" style="position:relative;">' +
     '<button class="modal-close" onclick="ctCloseModal()" aria-label="Close">✕</button>' + innerHtml + '</div>';
   document.body.appendChild(overlay);
   document.addEventListener('keydown', ctModalEscHandler);
@@ -95,6 +140,21 @@ function ctDemoModal(title, note){
         ${note || 'This element is not backed by a verified figure from a reviewed government report in this prototype. In the production version, this would open a live drill-down connected to the underlying data source.'}
       </p>
     </div>`);
+}
+
+// DEMO watermark overlay — for whole views or panels that have no verified
+// underlying data. The screen still opens and renders normally; the watermark
+// makes the placeholder status unmistakable (brief requirement 3).
+function ctDemoWatermark(note){
+  return `<div class="demo-watermark-overlay" aria-hidden="true"><span class="demo-watermark-text">DEMO</span></div>` +
+    (note ? `<div class="demo-watermark-note">${note}</div>` : '');
+}
+
+// Small availability chip used by the four-dimension views.
+function ctDimChip(available){
+  return available
+    ? '<span class="dim-chip verified">✓ verified data</span>'
+    : '<span class="dim-chip demo">DEMO — no data</span>';
 }
 
 // ---------------------------------------------------------------------------
@@ -160,29 +220,39 @@ function ctProgrammeTile(prog, opts){
     });
     sub += `</div></div>`;
   }
+  const clickAttr = opts.onClick ? ` onclick="${opts.onClick}"` : '';
+  const clickable = opts.onClick ? ' clickable' : (opts.clickable ? ' clickable' : '');
+  const cta = opts.onClick ? '<div class="cta">Programme breakdown →</div>' : '';
   return `
-    <div class="indicator-card${opts.clickable ? ' clickable' : ''}">
-      <div class="icat${hasExpand ? ' expand-trigger' : ''}" ${hasExpand ? `onclick="this.classList.toggle('open');document.getElementById('${uid}').classList.toggle('open')"` : ''}>
+    <div class="indicator-card${clickable}"${clickAttr}>
+      <div class="icat${hasExpand ? ' expand-trigger' : ''}" ${hasExpand ? `onclick="event.stopPropagation();this.classList.toggle('open');document.getElementById('${uid}').classList.toggle('open')"` : ''}>
         ${prog.name}${hasExpand ? ' <span class="expand-icon">▸</span>' : ''}
       </div>
       <div class="ival ${statusClass}">${displayPct != null ? displayPct + '%' : ctFormatUGX(prog.approved)}</div>
       <div class="isub">of ${ctFormatUGX(prog.revisedApproved || prog.approved)} released</div>
-      ${sub}
+      ${sub}${cta}
     </div>`;
 }
 
+// Topbar with browser-style back/forward, NICE-UG chip, role badge and the
+// current session geography (clickable — re-opens the geography picker).
 function ctTopbar(title, sub, roleKey){
   const role = CT_ROLES[roleKey];
+  const s = ctGetSession() || {};
+  const geoChip = s.geoId
+    ? `<a href="#/geography" class="geo-chip" title="Change area">📍 ${ctGeoName(s.constituencyId || s.subCountyId || s.wardId || s.cellId || s.geoId)}</a>`
+    : '';
   return `
     <div class="topbar">
       <button class="theme-toggle nav-arrow-btn" onclick="history.back()" style="position:static;" title="Back">←</button>
       <button class="theme-toggle nav-arrow-btn" onclick="history.forward()" style="position:static;margin-right:4px;" title="Forward">→</button>
       <div class="logo"></div>
-      <img src="NICE_UG_Logo.png" alt="NICE-UG" class="nice-ug-logo topbar-nice-logo">
-      <div style="flex:1;">
+      <img src="${CT_NICE_UG_LOGO}" alt="NICE-UG" class="nice-ug-logo topbar-nice-logo">
+      <div style="flex:1;min-width:0;">
         <div class="topbar-title">${title}</div>
         <div class="topbar-sub">${sub}</div>
       </div>
+      ${geoChip}
       <span class="badge ${role.badgeClass}">${role.badge}</span>
       <button class="theme-toggle" onclick="ctToggleTheme()" style="position:static;margin-left:8px;" title="Toggle dark mode">🌓</button>
       <button class="theme-toggle" onclick="ctLogout()" style="position:static;" title="Log out">⎋</button>
@@ -224,15 +294,53 @@ function ctPrevNextNav(list, currentId, hrefBase){
 }
 
 // ---------------------------------------------------------------------------
-// ROUTER
+// ROUTER — exact paths plus :param patterns (e.g. #/place/:geoId).
 // ---------------------------------------------------------------------------
 const CT_ROUTES = {};
-function ctRoute(path, fn){ CT_ROUTES[path] = fn; }
+const CT_ROUTE_PATTERNS = [];
+function ctRoute(path, fn){
+  if (path.indexOf(':') !== -1){
+    const parts = path.split('/');
+    CT_ROUTE_PATTERNS.push({ parts: parts, fn: fn });
+  } else {
+    CT_ROUTES[path] = fn;
+  }
+}
+// Returns { fn, params } for a hash path (query string already stripped), or null.
+function ctMatchRoute(path){
+  if (CT_ROUTES[path]) return { fn: CT_ROUTES[path], params: {} };
+  const segs = path.split('/');
+  for (const pat of CT_ROUTE_PATTERNS){
+    if (pat.parts.length !== segs.length) continue;
+    const params = {};
+    let ok = true;
+    for (let i = 0; i < pat.parts.length; i++){
+      const pp = pat.parts[i];
+      if (pp.charAt(0) === ':'){ params[pp.slice(1)] = decodeURIComponent(segs[i]); }
+      else if (pp !== segs[i]){ ok = false; break; }
+    }
+    if (ok) return { fn: pat.fn, params: params };
+  }
+  return null;
+}
+
+function ctGetQuery(){
+  const h = location.hash;
+  const q = h.indexOf('?');
+  const out = {};
+  if (q !== -1){
+    h.slice(q + 1).split('&').forEach(kv => {
+      const pair = kv.split('=');
+      if (pair[0]) out[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
+    });
+  }
+  return out;
+}
 
 function ctRender(){
   const app = document.getElementById('app');
   const session = ctGetSession();
-  let path = location.hash || '#/login';
+  let path = (location.hash || '#/login').split('?')[0];
 
   const publicRoutes = ['#/login', '#/signin'];
   if (!publicRoutes.includes(path) && !session){
@@ -244,13 +352,19 @@ function ctRender(){
     location.hash = '#/login';
     return;
   }
+  // Signed-in but no geography chosen yet → geography picker is mandatory
+  // before any role screen (it is what scopes the session's data).
+  if (session && !session.geoId && path !== '#/geography'){
+    location.hash = '#/geography';
+    return;
+  }
   const roleInPath = Object.keys(CT_ROLES).find(r => path.startsWith('#/' + r + '/'));
   if (roleInPath && session && roleInPath !== session.role){
     if (!path.includes('/project')) { location.hash = CT_ROLES[session.role].home; return; }
   }
 
-  const fn = CT_ROUTES[path.split('?')[0]] || CT_ROUTES['#/login'];
-  app.innerHTML = fn(session);
+  const match = ctMatchRoute(path) || ctMatchRoute(session ? CT_ROLES[session.role].home : '#/login');
+  app.innerHTML = match.fn(session, match.params);
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', ctRender);

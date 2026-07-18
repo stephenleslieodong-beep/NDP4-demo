@@ -129,6 +129,31 @@ function ctProgrammeBreakdownModal(geoId, focusName){
     }
   }
 
+  // Flagship initiatives housed under these Programmes (PDM, Emyooga, UWEP/YLP)
+  const flags = ctFlagshipsOf(distId);
+  if (flags.length){
+    body += '<div class="card-title" style="margin-top:14px;">Flagship initiatives under these Programmes</div>';
+    body += '<div class="card" style="margin:0;box-shadow:none;padding:0;">' + flags.map(f => `
+      <div class="row" style="cursor:pointer;" onclick="ctFlagshipModal('${distId}','${f.id}')">
+        <div><div class="row-title">${f.name}</div>
+        <div class="row-sub">${f.status === 'reported' ? f.summary : (f.status === 'issue' ? '⚠ ' + f.summary : 'DEMO — no geo-level figures in reviewed documents')}</div></div>
+        <span class="chevron">›</span></div>`).join('') + '</div>';
+  }
+
+  // Leader actions wherever challenges are visible in this breakdown
+  const belowPaceN = dist.dataKind === 'performance'
+    ? dist.programmes.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < dist.paceTarget - 15).length : 0;
+  const stalledN = dist.projects.filter(p => p.stageStatus === 'stalled').length;
+  const issueFlags = flags.filter(f => f.status === 'issue' || f.status === 'notAvailable').length;
+  if (belowPaceN || stalledN || issueFlags){
+    body += ctLeaderActions([
+      { icon: '📞', label: 'Contact LC1 chairman on the ground' },
+      { icon: '📄', label: 'Request CAO explanation' },
+      { icon: '⚡', label: 'Escalate to OPM' },
+      { icon: '🏛️', label: 'Table before council' }
+    ], { title: `Challenges flagged here (${belowPaceN} programme(s) behind pace · ${stalledN} stalled project(s)) — options to consider` });
+  }
+
   body += `<a href="#/place/${distId}" onclick="ctCloseModal();" style="display:inline-block;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--ct-black);">Open full place profile (all four dimensions) →</a>`;
 
   ctOpenModal(`
@@ -141,26 +166,103 @@ function ctProgrammeBreakdownModal(geoId, focusName){
 }
 
 // ---------------------------------------------------------------------------
-// PDM MODAL — keyed by geoId off the mobilization dimension.
+// LEADER ACTIONS — options to consider wherever a challenge surfaces
+// (procurement delays, below-pace programmes, non-released grants, missing
+// data). Rendered consistently across all indicators; every action is
+// simulated and confirms with a Demo Mode toast — nothing is actually sent.
 // ---------------------------------------------------------------------------
-function ctPDMModal(geoId){
-  const distId = ctDistrictIdOf(geoId);
-  const mob = ctMobilizationOf(distId);
-  const name = ctGeoDistrict(distId).name;
-  if (!mob || !mob.pdm || mob.pdm.notAvailable){
-    ctDemoModal('Parish Development Model — ' + name, (mob && mob.pdm && mob.pdm.note) || 'PDM figures for this Local Government were not available in the documents reviewed for this prototype.');
-    return;
-  }
-  const pdm = mob.pdm;
-  ctInfoModal('Parish Development Model — ' + name, `
-    <div class="card" style="margin:0;box-shadow:none;padding:0;">
-      <div class="row"><div class="row-title">Households facilitated</div><div class="row-sub" style="text-align:right;">${pdm.householdsFacilitated.toLocaleString()}</div></div>
-      <div class="row"><div class="row-title">Parishes covered</div><div class="row-sub" style="text-align:right;">${pdm.parishes}</div></div>
-      <div class="row"><div class="row-title">Parish Chief monthly allowance</div><div class="row-sub" style="text-align:right;">${ctFormatUGX(pdm.parishChiefAllowance)}</div></div>
-      ${pdm.parishesNote ? `<div style="font-size:10.5px;color:var(--ct-text-muted);padding-top:8px;">${pdm.parishesNote}</div>` : ''}
-    </div>`,
-    'Source: ' + (pdm.source || name + ' LG Quarterly Performance Report.'));
+function ctLeaderActions(actions, opts){
+  opts = opts || {};
+  return `
+    <div class="actions-block"${opts.flush ? ' style="margin-top:12px;"' : ''}>
+      <div class="actions-title">${opts.title || 'Options to consider'}</div>
+      <div class="action-chip-row">
+        ${actions.map(a => `<button class="action-chip" onclick="ctDemoModeToast('${a.toast || a.label}')">${a.icon ? `<span class="action-icon">${a.icon}</span>` : ''}${a.label}</button>`).join('')}
+      </div>
+    </div>`;
 }
+
+// ---------------------------------------------------------------------------
+// FLAGSHIP MODAL — PDM, Emyooga, UWEP/YLP, housed under the NDP IV
+// Programmes. Shows national context, geo-level progress BEYOND cash
+// (institutional reach, facilitation, non-cash activities — gaps marked
+// honestly), and leader actions where there are challenges.
+// ---------------------------------------------------------------------------
+function ctFlagshipModal(geoId, fid){
+  const distId = ctDistrictIdOf(geoId);
+  const f = ctFlagship(distId, fid);
+  const g = ctGeoDistrict(distId);
+  if (!f){ ctDemoModal('Flagship initiative', 'No flagship record for this geography in the reviewed documents.'); return; }
+
+  let nationalCard = '';
+  if (f.national){
+    const n = f.national;
+    nationalCard = `<div class="card" style="margin:0 0 12px;box-shadow:none;padding:0;">
+      ${n.capitalization ? `<div class="row"><div class="row-title">National capitalization</div><div class="row-sub" style="text-align:right;">${n.capitalization}</div></div>` : ''}
+      ${n.saccos ? `<div class="row"><div class="row-title">National footprint</div><div class="row-sub" style="text-align:right;">${n.saccos}</div></div>` : ''}
+      ${n.launched ? `<div class="row"><div class="row-title">Launched</div><div class="row-sub" style="text-align:right;">${n.launched}</div></div>` : ''}
+      ${n.admin ? `<div class="row"><div class="row-title">Administered by</div><div class="row-sub" style="text-align:right;max-width:58%;">${n.admin}</div></div>` : ''}
+      ${n.categories ? `<div class="row"><div class="row-title">Coverage</div><div class="row-sub" style="text-align:right;max-width:58%;">${n.categories}</div></div>` : ''}
+      ${n.seed ? `<div class="row"><div class="row-title">Seed capital</div><div class="row-sub" style="text-align:right;max-width:58%;">${n.seed}</div></div>` : ''}
+      ${n.goal ? `<div class="row"><div class="row-title">Stated goal</div><div class="row-sub" style="text-align:right;max-width:58%;">${n.goal}</div></div>` : ''}
+      <div style="font-size:10px;color:var(--ct-text-muted);padding-top:6px;">National context — source: ${n.source}.</div>
+    </div>`;
+  }
+
+  let progressHtml = '';
+  if (f.status === 'reported' && f.progress){
+    progressHtml = `<div class="card-title">Progress in ${g.name} — beyond disbursements</div>
+      <div class="card" style="margin:0 0 12px;box-shadow:none;padding:0;">
+        ${f.progress.map(p => `
+          <div class="row">
+            <div class="row-title" style="max-width:62%;">${p.label}${p.kind === 'noncash' ? ' <span class="kind-chip">non-cash</span>' : ''}</div>
+            <div class="row-sub" style="text-align:right;${p.gap ? 'color:var(--ct-text-muted);' : 'font-weight:600;'}">${p.gap ? 'DEMO — ' : ''}${p.value}</div>
+          </div>`).join('')}
+        ${f.note ? `<div style="font-size:10.5px;color:var(--ct-text-muted);padding-top:8px;">${f.note}</div>` : ''}
+      </div>`;
+  } else if (f.status === 'issue' && f.progress){
+    progressHtml = `<div class="card-title">Status in ${g.name} — challenge flagged</div>
+      <div class="card" style="margin:0 0 12px;box-shadow:none;padding:0;">
+        ${f.progress.map(p => `<div class="row"><div class="row-title" style="max-width:62%;">${p.label}</div><div class="row-sub" style="text-align:right;color:var(--ct-red);font-weight:600;">${p.value}</div></div>`).join('')}
+      </div>`;
+  } else {
+    progressHtml = `<div class="card demo-watermark-host" style="margin:0 0 12px;box-shadow:none;">
+        ${ctDemoWatermark()}
+        <div class="card-title">Progress in ${g.name} ${ctDimChip(false)}</div>
+        <p style="font-size:12px;color:var(--ct-text-secondary);line-height:1.55;">${f.note || 'No geo-level figures for this initiative in the reviewed documents.'}</p>
+      </div>`;
+  }
+
+  const actionsByStatus = {
+    reported: [
+      { icon: '📞', label: 'Contact district focal point person' },
+      { icon: '📄', label: 'Request parish-level detail report' },
+      { icon: '🏛️', label: 'Table progress before council' }
+    ],
+    issue: [
+      { icon: '📞', label: 'Contact district focal point person' },
+      { icon: '📨', label: 'Raise with responsible Ministry' },
+      { icon: '⚡', label: 'Escalate to OPM' },
+      { icon: '📄', label: 'Request CAO explanation' }
+    ],
+    notAvailable: [
+      { icon: '📄', label: 'Request data from focal point person' },
+      { icon: '📞', label: 'Contact district planner' }
+    ]
+  };
+
+  ctOpenModal(`
+    <h3>${f.name}</h3>
+    <div style="font-size:11.5px;color:var(--ct-text-secondary);margin-bottom:10px;">${f.kind} · housed under NDP IV Programmes · geography key <strong>${distId}</strong></div>
+    ${nationalCard}
+    ${progressHtml}
+    ${ctLeaderActions(actionsByStatus[f.status] || actionsByStatus.notAvailable, { title: 'Options to consider — ' + g.shortName })}
+    <div class="footer-note" style="margin-top:14px;text-align:left;font-style:normal;">${f.source ? 'Source: ' + f.source + '.' : 'Geo-level figures not in the reviewed documents; national context as cited.'}</div>
+  `, { wide: true });
+}
+
+// PDM modal is now the PDM flagship view (housed under Programmes).
+function ctPDMModal(geoId){ ctFlagshipModal(geoId, 'pdm'); }
 
 // ---------------------------------------------------------------------------
 // PERSON MODAL — directory entries. window._ctDirLeaders is rebuilt every
@@ -227,6 +329,15 @@ function ctRecommendations(geoId, roleKey){
       });
     }
   }
+  // Flagship initiatives with a flagged challenge (e.g. UWEP/YLP non-release)
+  ctFlagshipsOf(distId).filter(f => f.status === 'issue').forEach(f => {
+    recs.push({
+      icon: '🚩',
+      text: `<strong>${f.name}</strong>: ${f.summary} — named in the district's own report.`,
+      action: `ctFlagshipModal('${distId}','${f.id}')`,
+      cta: 'Open initiative →'
+    });
+  });
   if (qol && qol.notAvailable){
     recs.push({
       icon: '📊',
@@ -271,61 +382,26 @@ function ctDemoLevelPanel(title, note){
 }
 
 // ---------------------------------------------------------------------------
-// LOGIN — STEP 1: SELECT POSITION (role-first, per brief item 1)
+// LOGIN — a natural sign-in screen. This demo accepts ANY input (including a
+// blank submission) — there is no real credential validation. After sign-in
+// the user picks a demo account (MP or LC) on #/accounts.
 // ---------------------------------------------------------------------------
 ctRoute('#/login', function(){
   return `
-    <div class="login-wrap" style="max-width:720px;">
-      <div class="login-card card" style="padding-bottom:26px;">
-        <div class="login-logo-row">
-          <div class="logo"></div>
-          <img src="${CT_NICE_UG_LOGO}" alt="NICE-UG" class="nice-ug-logo login-nice-logo">
-        </div>
-        <h1>CivicTrack</h1>
-        <p>Select your position to see NDP IV tracked at your level of leadership.</p>
-      </div>
-
-      <div class="role-grid" style="padding:var(--space-5) 0 0;">
-        ${Object.keys(CT_ROLES).map(r => `
-          <div class="role-card card" onclick="ctSetPendingRole('${r}')">
-            <div class="role-icon" style="display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${CT_ROLES[r].badge}</div>
-            <div class="role-name">${CT_ROLES[r].label}</div>
-            <div class="role-desc">${CT_ROLE_DESC[r]}</div>
-          </div>`).join('')}
-      </div>
-
-      <p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:20px;max-width:440px;margin-left:auto;margin-right:auto;">
-        These 5 roles have real data behind them in this prototype. Additional institutional roles — Ministry, NPA, District Planner, CAO, RDC, Inspector, Development Partner — are planned for a later phase, once real data feeds for each are confirmed. They are not shown here to avoid demonstrating them with invented information.
-      </p>
-    </div>`;
-});
-
-// ---------------------------------------------------------------------------
-// LOGIN — STEP 2: DEMO SIGN-IN. This demo accepts ANY input (including a
-// blank submission) — there is no real credential validation (brief item 1).
-// ---------------------------------------------------------------------------
-ctRoute('#/signin', function(){
-  const pendingKey = ctGetPendingRole();
-  const role = CT_ROLES[pendingKey];
-  if (!role){ return ''; } // router already redirects to #/login when this happens
-  return `
     <div class="login-wrap">
       <div class="login-card card">
-        <div class="login-logo-row">
-          <div class="logo"></div>
-          <img src="${CT_NICE_UG_LOGO}" alt="NICE-UG" class="nice-ug-logo login-nice-logo">
-        </div>
-        <h1>Sign in</h1>
-        <p>Signing in as <strong>${role.label}</strong>. <a href="#/login" style="color:var(--ct-black);font-weight:600;text-decoration:none;">Not you? Choose a different role →</a></p>
+        <div class="login-logo-row">${ctBrandLogos('lg')}</div>
+        <h1>Sign in to CivicTrack</h1>
+        <p>NDP IV Planning &amp; Intelligence Platform</p>
 
         <div class="login-field-label">Official phone number or Staff ID</div>
         <input class="login-field" id="ctSigninId" type="text" placeholder="e.g. 07XX XXX XXX or LC5-KYG-014" autocomplete="off">
 
         <div class="login-field-label">Password</div>
-        <input class="login-field" id="ctSigninPw" type="password" placeholder="••••••••••">
+        <input class="login-field" id="ctSigninPw" type="password" placeholder="••••••••••" onkeydown="if(event.key==='Enter')ctCompleteSignin()">
 
         <button class="btn btn-black btn-large" onclick="ctCompleteSignin()">Sign in</button>
-        <button class="btn" onclick="ctDemoModal('Sign in with OTP', 'The OTP flow is not part of this demo. The main Sign in button above accepts any credentials — including none — and proceeds to geography selection.')">Sign in with OTP instead</button>
+        <button class="btn" onclick="ctDemoModal('Sign in with OTP', 'The OTP flow is not part of this demo. The main Sign in button above accepts any credentials — including none — and proceeds to picking a demo account.')">Sign in with OTP instead</button>
 
         <div class="verify-note">
           <strong>Demo mode:</strong> this prototype accepts <strong>any</strong> phone number / Staff ID and password — or neither — and proceeds. In production, identity would be verified against the Electoral Commission's elected office-holder roll and the Ministry of Local Government's LC1–LC5 structure records. NICE-UG does not issue credentials independently.
@@ -336,131 +412,137 @@ ctRoute('#/signin', function(){
 });
 
 function ctCompleteSignin(){
-  const role = ctGetPendingRole() || 'mp';
-  ctCreateSession(role);
-  sessionStorage.removeItem('ct_pending_role');
-  ctToast('Signed in (demo — no credentials validated). Now set your area.');
-  location.hash = '#/geography';
+  ctCreateSession();
+  ctToast('Signed in (demo — no credentials validated).');
+  location.hash = '#/accounts';
 }
 
 // ---------------------------------------------------------------------------
-// GEOGRAPHY SELECTION (brief item 5) — district → role-appropriate level.
-// Drives every subsequent view: dashboards scope to this geoId.
-// Step 1: #/geography          → pick district
-// Step 2: #/geography?d=<id>   → pick constituency / sub-county / ward / cell
+// DEMO ACCOUNT PICKER — after sign-in, pick who to explore as (MP or LC).
+// Each persona carries the role + full geography picks. MP and LC5 personas
+// are verified office-holders from the representation dimension; LC3/LC2/LC1
+// cards show the office and area only, because office-holder names for those
+// levels are not in the reviewed records (no invented names).
 // ---------------------------------------------------------------------------
-function ctGeoCoverageChips(distId){
-  const qol = ctQoLOf(distId), mob = ctMobilizationOf(distId), dist = ctProgrammeOf(distId);
-  const chips = [];
-  chips.push(dist && dist.dataKind === 'performance'
-    ? '<span class="dim-chip verified">✓ Performance report</span>'
-    : '<span class="dim-chip verified">✓ Approved budget</span>');
-  chips.push(qol && !qol.notAvailable ? '<span class="dim-chip verified">✓ Census 2024</span>' : '<span class="dim-chip demo">DEMO — census</span>');
-  chips.push(mob && mob.voters && !mob.voters.notAvailable ? '<span class="dim-chip verified">✓ Voters (EC)</span>' : '<span class="dim-chip demo">DEMO — voters</span>');
-  chips.push(mob && mob.pdm && !mob.pdm.notAvailable ? '<span class="dim-chip verified">✓ PDM</span>' : '<span class="dim-chip demo">DEMO — PDM</span>');
-  return chips.join(' ');
+function ctBuildPersonas(){
+  const tiers = { mp: [], lc5: [], lc3: [], lc2: [], lc1: [] };
+  CT_GEO_IDS.forEach(g => {
+    CT_DATA.geo[g].constituencies.forEach(cid => {
+      const rep = ctRepresentationOf(cid); const mp = rep && rep.leaders[0];
+      if (!mp) return;
+      tiers.mp.push({
+        name: mp.name, office: 'MP — ' + ctGeoName(cid),
+        area: CT_DATA.geo[g].name + ' · ' + mp.party, verified: true,
+        session: { role: 'mp', geoId: g, constituencyId: cid, label: 'Hon. ' + mp.name }
+      });
+    });
+  });
+  CT_GEO_IDS.forEach(g => {
+    const rep = ctRepresentationOf(g);
+    const chair = rep && rep.leaders.find(l => /LC5 Chairperson|Mayor/.test(l.office));
+    if (!chair) return;
+    tiers.lc5.push({
+      name: chair.name, office: chair.office,
+      area: CT_DATA.geo[g].name + ' · ' + chair.party, verified: true,
+      session: { role: 'lc5', geoId: g, label: chair.name }
+    });
+  });
+  [['UG-KYG','UG-KYG-SC-BBAALE'], ['UG-JJD','UG-JJD-SC-KAGOMA'], ['UG-JJC','UG-JJC-DV-MPUMUDDE']].forEach(pair => {
+    tiers.lc3.push({ name: ctGeoName(pair[1]), office: 'LC3 Chairperson', area: CT_DATA.geo[pair[0]].name + ' · projects in reviewed reports',
+      session: { role: 'lc3', geoId: pair[0], subCountyId: pair[1], label: 'LC3 Chairperson, ' + ctGeoName(pair[1]) } });
+  });
+  tiers.lc3.push({ name: 'Another sub-county…', office: 'LC3 Chairperson', area: 'All sub-counties — shows DEMO where projects are not itemized', chooser: 'lc3' });
+  tiers.lc2.push({ name: 'Jinja North Ward', office: 'LC2 Chairperson', area: 'Jinja City · real project data (Namulesa Market)',
+    session: { role: 'lc2', geoId: 'UG-JJC', wardId: 'UG-JJC-W-JN', label: 'LC2 Chairperson, Jinja North Ward' } });
+  tiers.lc2.push({ name: 'Another parish…', office: 'LC2 Chairperson', area: 'Parish names not itemized outside Jinja City — DEMO data', chooser: 'lc2' });
+  tiers.lc1.push({ name: 'Namulesa Cell', office: 'LC1 Chairperson', area: 'Jinja North Ward, Jinja City · real project data',
+    session: { role: 'lc1', geoId: 'UG-JJC', cellId: 'UG-JJC-C-NAM', label: 'LC1 Chairperson, Namulesa Cell' } });
+  tiers.lc1.push({ name: 'Another village…', office: 'LC1 Chairperson', area: 'Village names not itemized outside Jinja City — DEMO data', chooser: 'lc1' });
+  return tiers;
 }
 
-ctRoute('#/geography', function(){
-  const s = ctSess();
-  const role = CT_ROLES[s.role];
-  if (!role){ location.hash = '#/login'; return ''; }
-  const q = ctGetQuery();
-  const distId = q.d && CT_DATA.geo[q.d] ? q.d : null;
+function ctPersonaPick(i){
+  const p = (window._ctPersonas || [])[i];
+  if (p) ctLoginAsPersona(p);
+}
 
-  if (!distId){
-    return `
-      <div class="login-wrap" style="max-width:820px;">
-        <div class="login-card card" style="padding-bottom:22px;">
-          <div class="login-logo-row">
-            <div class="logo"></div>
-            <img src="${CT_NICE_UG_LOGO}" alt="NICE-UG" class="nice-ug-logo login-nice-logo">
-          </div>
-          <h1>Your area</h1>
-          <p>Signed in as <strong>${role.label}</strong>. Step 1 of 2 — choose your Local Government. This scopes everything you see afterwards.</p>
-        </div>
-        <div class="geo-grid">
-          ${CT_GEO_IDS.map(id => {
-            const g = CT_DATA.geo[id];
-            return `<div class="geo-card card" onclick="location.hash='#/geography?d=${id}'">
-              <div class="geo-name">${g.name}</div>
-              <div class="geo-meta">${g.kind === 'city' ? 'City' : 'District'} · ${g.type} · ${g.region}</div>
-              <div class="dim-strip" style="margin-top:10px;">${ctGeoCoverageChips(id)}</div>
-              <div class="cta" style="margin-top:12px;">Select ${g.shortName} →</div>
-            </div>`;
-          }).join('')}
-        </div>
-        <p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:20px;max-width:520px;margin-left:auto;margin-right:auto;">
-          Only these three Local Governments have reviewed source documents in this prototype (Uganda has ~146 districts as of 2025). The rest are not listed rather than shown with invented data.
-        </p>
-      </div>`;
+// Chooser modal for the "another area…" cards (LC3/LC2/LC1) — real options
+// built from the geo registry, so every DEMO branch stays reachable.
+function ctAreaChooser(which){
+  const opts = [];
+  if (which === 'lc3'){
+    CT_GEO_IDS.forEach(g => (CT_DATA.geo[g].subCounties || []).forEach(sc => {
+      opts.push({ label: sc.name, sub: CT_DATA.geo[g].name + ' · ' + ctProjectsInSubArea(g, sc.id).length + ' project(s) in reviewed reports',
+        session: { role: 'lc3', geoId: g, subCountyId: sc.id, label: 'LC3 Chairperson, ' + sc.name } });
+    }));
+  } else if (which === 'lc2'){
+    CT_GEO_IDS.forEach(g => {
+      (CT_DATA.geo[g].wards || []).forEach(w => opts.push({ label: w.name, sub: CT_DATA.geo[g].name,
+        session: { role: 'lc2', geoId: g, wardId: w.id, label: 'LC2 Chairperson, ' + w.name } }));
+      opts.push({ label: 'Parish in ' + CT_DATA.geo[g].shortName + ' (DEMO data)', sub: CT_DATA.geo[g].levelsNote || '',
+        session: { role: 'lc2', geoId: g, label: 'LC2 Chairperson, ' + CT_DATA.geo[g].shortName } });
+    });
+  } else {
+    CT_GEO_IDS.forEach(g => {
+      (CT_DATA.geo[g].cells || []).forEach(c => opts.push({ label: c.name, sub: CT_DATA.geo[g].name,
+        session: { role: 'lc1', geoId: g, cellId: c.id, label: 'LC1 Chairperson, ' + c.name } }));
+      opts.push({ label: 'Village in ' + CT_DATA.geo[g].shortName + ' (DEMO data)', sub: CT_DATA.geo[g].levelsNote || '',
+        session: { role: 'lc1', geoId: g, label: 'LC1 Chairperson, ' + CT_DATA.geo[g].shortName } });
+    });
   }
+  window._ctChooser = opts;
+  ctOpenModal('<h3>Choose your area</h3>' +
+    '<div class="chooser-list">' + opts.map((o, i) =>
+      `<div class="chooser-row" onclick="ctChooserPick(${i})"><div class="row-title">${o.label}</div><div class="row-sub">${o.sub}</div></div>`).join('') + '</div>');
+}
+function ctChooserPick(i){
+  const o = (window._ctChooser || [])[i];
+  ctCloseModal();
+  if (o) ctLoginAsPersona(o.session);
+}
 
-  // ---- step 2: role-appropriate level within the chosen district ----------
-  const g = CT_DATA.geo[distId];
-  const head = `
-    <div class="login-card card" style="padding-bottom:22px;">
-      <h1 style="font-size:19px;">${g.name}</h1>
-      <p>Step 2 of 2 — ${s.role === 'lc5' ? 'confirm your district-wide mandate.' : 'choose your ' + ({ mp: 'constituency', lc3: 'sub-county / division', lc2: 'parish / ward', lc1: 'village / cell' }[s.role]) + '.'} <a href="#/geography" style="color:var(--ct-black);font-weight:600;text-decoration:none;">← Change Local Government</a></p>
+ctRoute('#/accounts', function(){
+  const tiers = ctBuildPersonas();
+  window._ctPersonas = [];
+  const card = (p) => {
+    if (p.chooser){
+      return `<div class="leader-card card acct-card" onclick="ctAreaChooser('${p.chooser}')">
+        <div class="leader-avatar acct-avatar-dots">…</div>
+        <div class="leader-name">${p.name}</div>
+        <div class="leader-office">${p.office}</div>
+        <div class="leader-geo">${p.area}</div>
+      </div>`;
+    }
+    const i = window._ctPersonas.push(p.session) - 1;
+    const initials = p.name.split(' ').filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join('');
+    return `<div class="leader-card card acct-card" onclick="ctPersonaPick(${i})">
+      <div class="leader-avatar">${initials}</div>
+      <div class="leader-name">${p.name}</div>
+      <div class="leader-office">${p.office}</div>
+      <div class="leader-meta">${p.verified ? '<span class="dim-chip verified">✓ verified</span>' : '<span class="dim-chip demo">DEMO data area</span>'}</div>
+      <div class="leader-geo">${p.area}</div>
     </div>`;
-
-  let step2 = '';
-  if (s.role === 'lc5'){
-    step2 = `<div class="geo-grid">
-      <div class="geo-card card" onclick="ctSelectGeography({geoId:'${distId}'})">
-        <div class="geo-name">${g.name} — district-wide</div>
-        <div class="geo-meta">District Council mandate: all ${g.constituencies.length} constituencies, compared with peer districts.</div>
-        <div class="cta" style="margin-top:12px;">Continue as ${CT_ROLES.lc5.label} →</div>
-      </div></div>`;
-  } else if (s.role === 'mp'){
-    step2 = `<div class="geo-grid">${g.constituencies.map(cid => {
-      const rep = ctRepresentationOf(cid);
-      const mp = rep && rep.leaders[0];
-      return `<div class="geo-card card" onclick="ctSelectGeography({geoId:'${distId}',constituencyId:'${cid}'})">
-        <div class="geo-name">${ctGeoName(cid)}</div>
-        <div class="geo-meta">${mp ? 'Sitting MP (11th Parliament): <strong>' + mp.name + '</strong> · ' + mp.party : ''}</div>
-        <div class="cta" style="margin-top:12px;">This is my constituency →</div>
-      </div>`;
-    }).join('')}</div>`;
-  } else if (s.role === 'lc3'){
-    step2 = `<div class="geo-grid">${(g.subCounties || []).map(sc => `
-      <div class="geo-card card" onclick="ctSelectGeography({geoId:'${distId}',subCountyId:'${sc.id}'})">
-        <div class="geo-name">${sc.name}</div>
-        <div class="geo-meta">${ctProjectsInSubArea(distId, sc.id).length} project(s) in reviewed reports</div>
-        <div class="cta" style="margin-top:12px;">This is my sub-county →</div>
-      </div>`).join('')}</div>
-      ${g.subCountiesNote ? `<p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:14px;">${g.subCountiesNote}</p>` : ''}`;
-  } else if (s.role === 'lc2'){
-    step2 = (g.wards && g.wards.length)
-      ? `<div class="geo-grid">${g.wards.map(w => `
-        <div class="geo-card card" onclick="ctSelectGeography({geoId:'${distId}',wardId:'${w.id}'})">
-          <div class="geo-name">${w.name}</div>
-          <div class="geo-meta">Parish / ward level</div>
-          <div class="cta" style="margin-top:12px;">This is my parish →</div>
-        </div>`).join('')}</div>`
-      : `<div class="geo-grid"><div class="geo-card card demo-watermark-host" onclick="ctSelectGeography({geoId:'${distId}'})">
-          ${ctDemoWatermark()}
-          <div class="geo-name">Parish level — ${g.name}</div>
-          <div class="geo-meta">${g.levelsNote}</div>
-          <div class="cta" style="margin-top:12px;">Continue (parish data will show as DEMO) →</div>
-        </div></div>`;
-  } else { // lc1
-    step2 = (g.cells && g.cells.length)
-      ? `<div class="geo-grid">${g.cells.map(c => `
-        <div class="geo-card card" onclick="ctSelectGeography({geoId:'${distId}',cellId:'${c.id}'})">
-          <div class="geo-name">${c.name}</div>
-          <div class="geo-meta">Village / cell level</div>
-          <div class="cta" style="margin-top:12px;">This is my village →</div>
-        </div>`).join('')}</div>`
-      : `<div class="geo-grid"><div class="geo-card card demo-watermark-host" onclick="ctSelectGeography({geoId:'${distId}'})">
-          ${ctDemoWatermark()}
-          <div class="geo-name">Village level — ${g.name}</div>
-          <div class="geo-meta">${g.levelsNote}</div>
-          <div class="cta" style="margin-top:12px;">Continue (village data will show as DEMO) →</div>
-        </div></div>`;
-  }
-
-  return `<div class="login-wrap" style="max-width:820px;">${head}${step2}</div>`;
+  };
+  const group = (title, sub, items) => `
+    <div class="card-title" style="margin-top:22px;">${title}</div>
+    ${sub ? `<div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:8px;">${sub}</div>` : ''}
+    <div class="leader-grid">${items.map(card).join('')}</div>`;
+  return `
+    <div class="login-wrap" style="max-width:960px;">
+      <div class="login-card card" style="padding-bottom:22px;">
+        <div class="login-logo-row">${ctBrandLogos('lg')}</div>
+        <h1 style="font-size:20px;">Choose a demo account</h1>
+        <p>Signed in ✓ (demo — no credentials checked). Now pick who to explore CivicTrack as — every account opens that leader's own geography and data.</p>
+      </div>
+      ${group('Members of Parliament', 'Verified 11th Parliament (2021–2026) office-holders — one per constituency across the three Local Governments with reviewed data.', tiers.mp)}
+      ${group('LC5 — District & city leadership', 'Verified district chairpersons and the Jinja City mayor.', tiers.lc5)}
+      ${group('LC3 — Sub-county / division', 'Office shown without a personal name — LC3 office-holder names are not in the reviewed records.', tiers.lc3)}
+      ${group('LC2 — Parish / ward', '', tiers.lc2)}
+      ${group('LC1 — Village / cell', '', tiers.lc1)}
+      <p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:22px;max-width:560px;margin-left:auto;margin-right:auto;">
+        Only these accounts have real, reviewed data behind them. Additional institutional roles — Ministry, NPA, District Planner, CAO, RDC, Development Partner — are planned for a later phase, once real data feeds for each are confirmed. They are not shown here to avoid demonstrating them with invented information.
+      </p>
+    </div>`;
 });
 
 // ---------------------------------------------------------------------------
@@ -658,14 +740,14 @@ ctRoute('#/mp/dashboard', function(){
     ? `<div class="indicator-card clickable" onclick="ctPDMModal('${g.id}')">
         <div class="icat">Parish Development Model</div>
         <div class="ival good">${mob.pdm.householdsFacilitated.toLocaleString()}</div>
-        <div class="isub">households facilitated across ${mob.pdm.parishes} parishes</div>
-        <div class="cta">View detail →</div>
+        <div class="isub">households facilitated across ${mob.pdm.parishes} parishes · housed under Programmes with Emyooga &amp; UWEP/YLP</div>
+        <div class="cta">Open under Programmes →</div>
       </div>`
     : `<div class="indicator-card clickable" onclick="ctPDMModal('${g.id}')">
         <div class="icat">Parish Development Model</div>
         <div class="ival" style="font-size:16px;color:var(--ct-text-muted);">DEMO</div>
-        <div class="isub">PDM figures not in the reviewed reports for ${g.shortName}</div>
-        <div class="cta">View status →</div>
+        <div class="isub">PDM figures not in the reviewed reports for ${g.shortName} · housed under Programmes</div>
+        <div class="cta">Open under Programmes →</div>
       </div>`;
 
   return ctTopbar(ctMpTitle(ctx), g.name + ', ' + g.region + (ctx.mp ? ' · verified against Parliament records' : ''), 'mp') + `
@@ -704,6 +786,14 @@ ctRoute('#/mp/dashboard', function(){
             <div class="cta">Open profile →</div>
           </div>
         </a>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Collect data from your constituency</div>
+        <div style="font-size:11.5px;color:var(--ct-text-secondary);margin-bottom:10px;">Structured monitoring prompts for the NDP IV aspects CivicTrack tracks — file a field report yourself, or ask your LC structures to report upward on any of them.</div>
+        <div class="filter-strip" style="margin-bottom:0;">
+          ${CT_COLLECT_ASPECTS.map(a => `<a class="filter-chip" href="#/collect?aspect=${a.id}" style="text-decoration:none;">${a.icon} ${a.label}</a>`).join('')}
+        </div>
       </div>
 
       ${ctRecommendations(g.id, 'mp')}
@@ -836,6 +926,12 @@ ctRoute('#/mp/project/bbaale-hc4', function(){
             <button class="btn" onclick="ctDemoModeToast('Escalation sent to OPM')">Escalate to OPM</button>
             <button class="btn" onclick="ctDemoModeToast('Ministry briefing requested')">Request Ministry briefing</button>
             <a href="#/outcome" class="btn btn-yellow" style="text-decoration:none;">What success would look like →</a>
+            ${ctLeaderActions([
+              { icon: '📞', label: 'Contact LC1 Chairman, Bbaale' },
+              { icon: '👷', label: 'Contact district engineer' },
+              { icon: '📄', label: 'Request CAO status briefing' },
+              { icon: '🏛️', label: 'Raise at district council' }
+            ], { title: 'More options to consider' })}
             ${ctConstitutionalNote('MPs do not personally fund projects. This toolkit supports oversight, coordination, and advocacy — raising issues, requesting briefings, and escalating blockers to the government agency actually responsible for delivery.')}
           </div>
           <div class="card">
@@ -1037,6 +1133,12 @@ ctRoute('#/lc5/project/jd-buwolero-road', function(){
             <button class="btn btn-red" onclick="ctDemoModeToast('Parliamentary Question drafted')">Draft Parliamentary Question — URF release</button>
             <button class="btn" onclick="ctDemoModeToast('Engineering assessment requested')">Request engineering assessment</button>
             <button class="btn" onclick="ctDemoModeToast('Escalated to Uganda Road Fund')">Escalate to Uganda Road Fund</button>
+            ${ctLeaderActions([
+              { icon: '📞', label: 'Contact LC1 chairpersons along the road' },
+              { icon: '👷', label: 'Contact district works department' },
+              { icon: '📄', label: 'Request CAO briefing' },
+              { icon: '⚡', label: 'Escalate to OPM' }
+            ], { title: 'More options to consider' })}
             ${ctConstitutionalNote("the District Council's role is oversight and coordination — verifying, escalating, and holding the Uganda Road Fund and contractor accountable — not directly financing the repair itself.")}
           </div>
         </div>
@@ -1154,6 +1256,13 @@ ctRoute('#/lc3/dashboard', function(){
             <div class="cta">Open directory →</div>
           </div>
         </a>
+        <a href="#/collect" style="text-decoration:none;">
+          <div class="indicator-card clickable" style="margin-top:4px;">
+            <div class="icat">Field data collection</div>
+            <div class="isub">Report on any NDP IV aspect — health, education, roads, water, PDM groups, markets — with photo evidence</div>
+            <div class="cta">Open collection prompts →</div>
+          </div>
+        </a>
         ${ctRecommendations(g.id, 'lc3')}
         <div class="footer-note">Sample screen — Jinja City's approved FY2025/26 Budget Estimates, organized by NDP IV Programme.</div>
       </div>`;
@@ -1209,6 +1318,13 @@ ctRoute('#/lc3/dashboard', function(){
           <div class="cta">Open directory →</div>
         </div>
       </a>
+      <a href="#/collect" style="text-decoration:none;">
+        <div class="indicator-card clickable" style="margin-top:4px;">
+          <div class="icat">Field data collection</div>
+          <div class="isub">Report on any NDP IV aspect — health, education, roads, water, PDM groups, markets — with photo evidence</div>
+          <div class="cta">Open collection prompts →</div>
+        </div>
+      </a>
       ${ctRecommendations(g.id, 'lc3')}
       <div class="footer-note">Sample screen — ${g.name} LG Performance Report, ${dist.quarter}.</div>
     </div>`;
@@ -1247,6 +1363,11 @@ ctRoute('#/lc3/monitoring', function(){
         <button class="btn btn-red" onclick="ctDemoModeToast('Blocker reported')">Report a blocker</button>
         ${blockerField}
         <button class="btn btn-black" onclick="ctDemoModeToast('Escalated to LC5 / Jinja City Council')">Escalate to LC5 / Jinja City Council</button>
+        ${ctLeaderActions([
+          { icon: '📞', label: 'Contact LC1 chairman' },
+          { icon: '👷', label: 'Contact contractor via city engineer' },
+          { icon: '📷', label: 'Request LC1 photo verification' }
+        ], { title: 'More options to consider' })}
         <div class="footer-note">Sample screen — Jinja City's FY2025/26 budget confirms funding; on-the-ground status is field-reported, not yet in an official performance report.</div>
       </div>`;
   }
@@ -1275,6 +1396,11 @@ ctRoute('#/lc3/monitoring', function(){
       <button class="btn btn-red" onclick="ctDemoModeToast('Blocker reported')">Report a blocker</button>
       ${blockerField}
       <button class="btn btn-black" onclick="ctDemoModeToast('Escalated to LC5 / ' + '${g.name}' + ' Council')">Escalate to LC5 / ${g.name} Council</button>
+      ${ctLeaderActions([
+        { icon: '📞', label: 'Contact LC1 chairman' },
+        { icon: '👷', label: 'Contact contractor via district engineer' },
+        { icon: '📷', label: 'Request LC1 photo verification' }
+      ], { title: 'More options to consider' })}
       <div class="footer-note">Sample screen — ${g.name} LG Performance Report, ${dist.quarter}; field status is demo-reported.</div>
     </div>`;
 });
@@ -1326,6 +1452,13 @@ ctRoute('#/lc2/dashboard', function(){
           <div class="row" style="cursor:pointer;" onclick="ctDemoModal('Church leaders', 'Per-group mobilization workflows are not yet built in this prototype.')"><div class="row-title">Church leaders</div><span class="chevron">›</span></div>
         </div>
         <a href="#/lc2/mobilize" class="btn btn-yellow" style="text-decoration:none;display:block;text-align:center;">Open mobilization workspace →</a>
+        <a href="#/collect" style="text-decoration:none;">
+          <div class="indicator-card clickable" style="margin-top:12px;">
+            <div class="icat">Field data collection</div>
+            <div class="isub">Report on any NDP IV aspect — health, education, roads, water, PDM groups, markets — with photo evidence</div>
+            <div class="cta">Open collection prompts →</div>
+          </div>
+        </a>
         <div class="footer-note">Sample screen — funding figure sourced from Jinja City's approved FY2025/26 Budget Estimates; vendor count and mobilization detail are illustrative.</div>
       </div>`;
   }
@@ -1365,6 +1498,13 @@ ctRoute('#/lc2/dashboard', function(){
           <div class="icat">Leadership directory</div>
           <div class="isub">MPs, Woman MP &amp; LC5 for ${g.shortName}</div>
           <div class="cta">Open directory →</div>
+        </div>
+      </a>
+      <a href="#/collect" style="text-decoration:none;">
+        <div class="indicator-card clickable" style="margin-top:4px;">
+          <div class="icat">Field data collection</div>
+          <div class="isub">Report on any NDP IV aspect — health, education, roads, water, PDM groups, markets — with photo evidence</div>
+          <div class="cta">Open collection prompts →</div>
         </div>
       </a>
       <div class="footer-note">Sample screen — parish-level detail shown as DEMO where the reviewed documents do not itemize it.</div>
@@ -1445,6 +1585,13 @@ ctRoute('#/lc1/dashboard', function(){
           <p style="font-size:12px;color:var(--ct-text-secondary);margin-top:10px;">Funded — construction status not yet confirmed on the ground</p>
         </div>
         <a href="#/lc1/report" class="btn btn-yellow btn-large" style="text-decoration:none;display:block;text-align:center;">Report what I see</a>
+        <a href="#/collect" style="text-decoration:none;">
+          <div class="indicator-card clickable" style="margin-top:12px;">
+            <div class="icat">Other monitoring aspects</div>
+            <div class="isub">Health, education, roads, water, PDM groups, markets — with photo evidence</div>
+            <div class="cta">Open collection prompts →</div>
+          </div>
+        </a>
         <div class="footer-note">Sample screen — offline-first, designed for low-end Android use.</div>
       </div>`;
   }
@@ -1455,6 +1602,13 @@ ctRoute('#/lc1/dashboard', function(){
         (g.levelsNote || 'Village-level items are not itemized in the reviewed documents for this Local Government.') +
         ' This screen would show the nearest funded project to this village once the village register is connected.')}
       <a href="#/lc1/report" class="btn btn-yellow btn-large" style="text-decoration:none;display:block;text-align:center;">Report what I see</a>
+      <a href="#/collect" style="text-decoration:none;">
+        <div class="indicator-card clickable" style="margin-top:12px;">
+          <div class="icat">Other monitoring aspects</div>
+          <div class="isub">Health, education, roads, water, PDM groups, markets — with photo evidence</div>
+          <div class="cta">Open collection prompts →</div>
+        </div>
+      </a>
       <div class="footer-note">Sample screen — village-level detail shown as DEMO where the reviewed documents do not itemize it.</div>
     </div>`;
 });
@@ -1472,7 +1626,7 @@ ctRoute('#/lc1/report', function(){
       ${ctBreadcrumb([{ label: 'Dashboard', href: '#/lc1/dashboard' }, { label: 'Report site status' }])}
       <div class="screen-title" style="font-size:17px;">${siteName}</div>
       ${named ? '' : '<div class="hypothetical-banner"><strong>DEMO:</strong> no named site exists for this village in the reviewed documents — this form is shown so the reporting flow can be exercised end-to-end.</div>'}
-      <div class="photo-box" style="height:190px;" onclick="ctDemoModeToast('Photo captured')"><div class="icon" style="font-size:34px;">📷</div>Tap to take a photo</div>
+      <label class="photo-box" style="height:190px;"><input type="file" accept="image/*" capture="environment" style="display:none" onchange="ctPhotoPreview(this)"><div class="icon" style="font-size:34px;">📷</div>Tap to take or upload a photo</label>
 
       <p style="font-size:14px;font-weight:500;margin-bottom:10px;">Is work happening at this site?</p>
       <div class="choice-row">
@@ -1486,7 +1640,10 @@ ctRoute('#/lc1/report', function(){
 
       <button class="btn btn-black btn-large" onclick="ctDemoModeToast('Report submitted');setTimeout(()=>location.hash='#/lc1/dashboard',1200)">Submit report</button>
 
+      <a href="#/collect" style="display:inline-block;margin-top:12px;font-size:12.5px;font-weight:600;color:var(--ct-black);text-decoration:none;">Report on other NDP IV aspects (health, roads, PDM groups…) →</a>
+
       <div class="sync-banner" style="margin-top:14px;">☁️ Saved — will sync when you're back online</div>
+      <div class="footer-note">The photo preview is real, but in this demo the image never leaves your device and the submission is not stored.</div>
     </div>`;
 });
 
@@ -1518,5 +1675,78 @@ ctRoute('#/outcome', function(){
         </div>
       </div>
       <div class="footer-note">The only screen in this app built from a hypothetical scenario rather than a real, current record.</div>
+    </div>`;
+});
+
+// ---------------------------------------------------------------------------
+// FIELD DATA COLLECTION — structured monitoring prompts for the NDP IV
+// aspects CivicTrack tracks, usable by MPs and every LC level. LC1 project
+// monitoring (photo + report) is one instance of this pattern; this route
+// generalizes it across all aspects of interest. The photo preview is real;
+// submissions are simulated (Demo Mode toast) and never uploaded.
+// ---------------------------------------------------------------------------
+const CT_COLLECT_ASPECTS = [
+  { id: 'health', icon: '🏥', label: 'Health facility status', programme: 'Human Capital Development',
+    statuses: ['Functional', 'Partially functional', 'Not functional'],
+    prompt: 'Staffing, drug stock, roof / equipment condition…' },
+  { id: 'education', icon: '🏫', label: 'School & classroom status', programme: 'Human Capital Development',
+    statuses: ['Functional', 'Partially functional', 'Not functional'],
+    prompt: 'Classroom condition, teacher presence, materials…' },
+  { id: 'roads', icon: '🛣️', label: 'Road & drainage condition', programme: 'Integrated Transport Infrastructure and Services',
+    statuses: ['Motorable', 'Difficult to pass', 'Impassable'],
+    prompt: 'Surface condition, swampy sections, culverts…' },
+  { id: 'water', icon: '💧', label: 'Water point status', programme: 'Natural Resources, Environment, Climate Change, Land and Water Management',
+    statuses: ['Working', 'Intermittent', 'Broken'],
+    prompt: 'Flow, queue length, repair needs…' },
+  { id: 'pdm', icon: '🏘️', label: 'PDM / wealth-group activity', programme: 'Flagship initiatives (PDM, Emyooga, UWEP/YLP)',
+    statuses: ['Active group', 'Dormant group', 'No group formed'],
+    prompt: 'SACCO meetings, disbursement progress, enterprise activity…' },
+  { id: 'market', icon: '🧺', label: 'Market & local revenue', programme: 'Private Sector Development',
+    statuses: ['Operating normally', 'Partially operating', 'Closed / stalled'],
+    prompt: 'Stall occupancy, vendor concerns, revenue collection…' }
+];
+
+ctRoute('#/collect', function(){
+  const s = ctSess();
+  const g = ctSessGeo();
+  const dist = ctSessDistrict();
+  const active = CT_COLLECT_ASPECTS.find(a => a.id === (ctGetQuery().aspect || '')) || CT_COLLECT_ASPECTS[0];
+  const projects = dist ? dist.projects : [];
+  const areaName = ctGeoName(s.constituencyId || s.subCountyId || s.wardId || s.cellId || s.geoId);
+  return ctTopbar('Field data collection', g.name + ' · NDP IV monitoring', s.role) + `
+    <div class="content">
+      ${ctBreadcrumb([{ label: 'Dashboard', href: CT_ROLES[s.role].home }, { label: 'Field data collection' }])}
+      <div class="screen-title">Collect field data</div>
+      <div class="screen-sub">Structured prompts for the NDP IV aspects CivicTrack monitors. Pick an aspect, record what you see, attach photo evidence — reports feed the responsible leader dashboards (simulated in this demo).</div>
+
+      <div class="filter-strip" style="margin-bottom:14px;">
+        ${CT_COLLECT_ASPECTS.map(a => `<a class="filter-chip${a.id === active.id ? ' active' : ''}" href="#/collect?aspect=${a.id}" style="text-decoration:none;">${a.icon} ${a.label}</a>`).join('')}
+      </div>
+
+      <div class="card">
+        <div class="card-title">${active.icon} ${active.label}</div>
+        <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:12px;">NDP IV aspect: ${active.programme} · reporting from <strong>${areaName}</strong></div>
+
+        <p style="font-size:13px;font-weight:500;margin-bottom:8px;">What is the status?</p>
+        <div class="choice-row">
+          ${active.statuses.map((st, i) => `<div class="choice-btn${i === 0 ? ' selected' : ''}" onclick="document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${st}</div>`).join('')}
+        </div>
+
+        <p style="font-size:13px;font-weight:500;margin-bottom:8px;">What did you see?</p>
+        <div class="field" style="height:70px;">${active.prompt}</div>
+
+        <p style="font-size:13px;font-weight:500;margin-bottom:8px;">Link to a project (optional)</p>
+        <select class="field" style="color:var(--ct-text);">
+          <option value="">— not linked to a specific project —</option>
+          ${projects.map(p => `<option>${p.name}</option>`).join('')}
+        </select>
+
+        <p style="font-size:13px;font-weight:500;margin-bottom:8px;">Photo evidence</p>
+        <label class="photo-box"><input type="file" accept="image/*" capture="environment" style="display:none" onchange="ctPhotoPreview(this)"><div class="icon">📷</div>Tap to take or upload a photo</label>
+
+        <button class="btn btn-black btn-large" onclick="ctDemoModeToast('Field report submitted');setTimeout(()=>location.hash='${CT_ROLES[s.role].home}',1200)">Submit report</button>
+        <div class="sync-banner" style="margin-top:14px;">☁️ Saved — will sync when you're back online</div>
+      </div>
+      <div class="footer-note">The photo preview is real, but in this demo the image never leaves your device and submissions are not stored. In production, reports route to the relevant leader dashboards and attach to the linked project.</div>
     </div>`;
 });

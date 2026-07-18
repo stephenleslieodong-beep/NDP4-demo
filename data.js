@@ -543,6 +543,92 @@ const CT_DATA = {
     fieldVisits: 27,
     jinjaStreets: ["Scott Road (Walukuba)", "Bridge Street (Nalufenya)", "Elizabeth Road", "Clarke Road", "Lubas Road"],
     disputeType: "blocked service lanes and encroachment disputes"
+  },
+
+  // -------------------------------------------------------------------------
+  // DIMENSION 4b — FLAGSHIP INITIATIVES, keyed by the SAME geoId and housed
+  // UNDER the NDP IV Programmes (dimension 4). These are the cross-cutting,
+  // nationally significant initiatives — PDM, Emyooga, UWEP/YLP. Progress is
+  // tracked with MORE than cash disbursements: institutional coverage,
+  // facilitation, and non-cash activities. `kind: "noncash"` marks progress
+  // that isn't about money; `gap: true` marks an aspect the tool tracks but
+  // the reviewed documents don't yet report (shown honestly, never filled in).
+  // -------------------------------------------------------------------------
+  flagships: {
+    "UG-KYG": [
+      { id: "pdm", name: "Parish Development Model (PDM)",
+        kind: "Cross-cutting wealth-creation flagship (coordinated by MoLG; financial-inclusion pillar)",
+        status: "reported",
+        summary: "3,593 households facilitated across 71 parishes",
+        national: { capitalization: "UGX 1.059 trillion", saccos: "10,594 SACCOs nationally",
+          source: "National Budget Speech, FY2026/27" },
+        progress: [
+          { label: "Households facilitated (financing)", value: "3,593", kind: "cash" },
+          { label: "Parishes covered (institutional reach)", value: "71 / 71", kind: "noncash" },
+          { label: "Parish Chief monthly facilitation", value: "UGX 300,000", kind: "noncash" },
+          { label: "Mindset change & community mobilization activities", value: "Not reported in reviewed documents", kind: "noncash", gap: true },
+          { label: "Beneficiary enumeration & enterprise selection", value: "Not reported in reviewed documents", kind: "noncash", gap: true }
+        ],
+        note: "The district report counts 71 PDM parishes versus the EC's 62 electoral parishes — PDM counts include town-council wards; kept exactly as reported.",
+        source: "Kayunga District LG Quarterly Performance Report, FY2025/26 Q2" },
+      { id: "emyooga", name: "Emyooga — Presidential Initiative on Wealth & Job Creation",
+        kind: "Cross-cutting wealth-creation flagship (constituency SACCOs, 18 enterprise categories)",
+        status: "notAvailable",
+        national: { launched: "August 2019", admin: "Ministry of Finance, implemented through the Microfinance Support Centre (MSC)",
+          categories: "18 specialized enterprise categories (boda-boda, market vendors, carpenters, salon operators, journalists, veterans, etc.)",
+          seed: "UGX 30m seed capital per constituency SACCO (UGX 50m for elected-leaders' SACCOs)",
+          goal: "shift 68% of homesteads from subsistence to market-oriented production",
+          source: "Microfinance Support Centre programme records" },
+        note: "District-level Emyooga figures for Kayunga (SACCOs formed, savings mobilized, loans recovered) are not in the reviewed reports." },
+      { id: "uwep-ylp", name: "UWEP & Youth Livelihood Programme (YLP)",
+        kind: "Cross-cutting community-empowerment programmes",
+        status: "notAvailable",
+        note: "No UWEP/YLP status line appears in the Kayunga report extract reviewed for this prototype." }
+    ],
+
+    "UG-JJD": [
+      { id: "pdm", name: "Parish Development Model (PDM)",
+        kind: "Cross-cutting wealth-creation flagship (coordinated by MoLG; financial-inclusion pillar)",
+        status: "notAvailable",
+        national: { capitalization: "UGX 1.059 trillion", saccos: "10,594 SACCOs nationally",
+          source: "National Budget Speech, FY2026/27" },
+        note: "PDM figures for Jinja District were not available in the report reviewed for this prototype." },
+      { id: "emyooga", name: "Emyooga — Presidential Initiative on Wealth & Job Creation",
+        kind: "Cross-cutting wealth-creation flagship (constituency SACCOs, 18 enterprise categories)",
+        status: "notAvailable",
+        national: { launched: "August 2019", admin: "Ministry of Finance, implemented through the Microfinance Support Centre (MSC)",
+          categories: "18 specialized enterprise categories",
+          source: "Microfinance Support Centre programme records" },
+        note: "District-level Emyooga figures for Jinja District are not in the reviewed reports." },
+      { id: "uwep-ylp", name: "UWEP & Youth Livelihood Programme (YLP)",
+        kind: "Cross-cutting community-empowerment programmes",
+        status: "issue",
+        summary: "UWEP & YLP grants not released in Q1 FY2025/26",
+        progress: [
+          { label: "Q1 FY2025/26 grant release", value: "Not released — named by the district among its underperformance causes (with National Oil Seed Project, UNEB; donors GAVI, UNICEF, WHO also absent that quarter)", kind: "cash", gap: true }
+        ],
+        source: "Jinja District LG Performance Report, FY2025/26 Q1" }
+    ],
+
+    "UG-JJC": [
+      { id: "pdm", name: "Parish Development Model (PDM)",
+        kind: "Cross-cutting wealth-creation flagship (coordinated by MoLG; financial-inclusion pillar)",
+        status: "notAvailable",
+        national: { capitalization: "UGX 1.059 trillion", saccos: "10,594 SACCOs nationally",
+          source: "National Budget Speech, FY2026/27" },
+        note: "City-level PDM figures were not available in the documents reviewed for this prototype." },
+      { id: "emyooga", name: "Emyooga — Presidential Initiative on Wealth & Job Creation",
+        kind: "Cross-cutting wealth-creation flagship (constituency SACCOs, 18 enterprise categories)",
+        status: "notAvailable",
+        national: { launched: "August 2019", admin: "Ministry of Finance, implemented through the Microfinance Support Centre (MSC)",
+          categories: "18 specialized enterprise categories",
+          source: "Microfinance Support Centre programme records" },
+        note: "City-level Emyooga figures are not in the reviewed reports." },
+      { id: "uwep-ylp", name: "UWEP & Youth Livelihood Programme (YLP)",
+        kind: "Cross-cutting community-empowerment programmes",
+        status: "notAvailable",
+        note: "No UWEP/YLP status line appears in the Jinja City budget extract reviewed." }
+    ]
   }
 };
 
@@ -594,3 +680,9 @@ function ctProgrammeOf(geoId){ return CT_DATA.programmeData[ctDistrictIdOf(geoId
 function ctRepresentationOf(geoId){ return CT_DATA.representation[geoId] || null; }
 function ctQoLOf(geoId){ return CT_DATA.qualityOfLife[ctDistrictIdOf(geoId)] || null; }
 function ctMobilizationOf(geoId){ return CT_DATA.mobilization[ctDistrictIdOf(geoId)] || null; }
+// Flagship initiatives (PDM, Emyooga, UWEP/YLP) — housed under the Programmes
+// dimension, retrieved through the same geo key.
+function ctFlagshipsOf(geoId){ return CT_DATA.flagships[ctDistrictIdOf(geoId)] || []; }
+function ctFlagship(geoId, fid){
+  return ctFlagshipsOf(geoId).find(f => f.id === fid) || null;
+}

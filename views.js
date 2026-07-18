@@ -501,8 +501,50 @@ function ctChooserPick(i){
   if (o) ctLoginAsPersona(o.session);
 }
 
+// Two-step picker: (1) choose your POSITION, (2) choose your AREA / account.
+// Step 2 lives at #/accounts?role=mp|lc5|lc3|lc2|lc1 so the browser back
+// button returns from "area" to "position" naturally.
+const CT_ROLE_STEPS = [
+  { key: 'mp',  icon: '🏛️', title: 'Member of Parliament', sub: 'Constituency oversight, legislation & national advocacy' },
+  { key: 'lc5', icon: '🏢', title: 'LC5 — District / City', sub: 'District chairperson or city mayor — the whole Local Government' },
+  { key: 'lc3', icon: '🏘️', title: 'LC3 — Sub-county / Division', sub: 'Sub-county chairperson — projects across several parishes' },
+  { key: 'lc2', icon: '🌾', title: 'LC2 — Parish / Ward', sub: 'Parish chief — PDM SACCO level, mobilization & ward projects' },
+  { key: 'lc1', icon: '🏠', title: 'LC1 — Village / Cell', sub: 'Village chairperson — eyes and ears on every site' }
+];
 ctRoute('#/accounts', function(){
   const tiers = ctBuildPersonas();
+  const q = ctGetQuery();
+  const role = q.role && tiers[q.role] ? q.role : null;
+
+  // STEP 1 — position
+  if (!role){
+    return `
+      <div class="login-wrap" style="max-width:640px;">
+        <div class="login-card card" style="padding-bottom:22px;">
+          <div class="login-logo-row">${ctBrandLogos('lg')}</div>
+          <h1 style="font-size:20px;">Choose a demo account</h1>
+          <p>Signed in ✓ (demo — no credentials checked). Step 1 of 2 — what position do you want to explore CivicTrack from?</p>
+        </div>
+        ${CT_ROLE_STEPS.map(r => `
+          <div class="card role-step-card" onclick="location.hash='#/accounts?role=${r.key}'">
+            <div class="role-step-icon">${r.icon}</div>
+            <div style="flex:1;">
+              <div class="row-title">${r.title}</div>
+              <div class="row-sub">${r.sub}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="dim-chip">${tiers[r.key].length} demo account${tiers[r.key].length > 1 ? 's' : ''}</div>
+              <div class="chevron" style="margin-top:6px;">›</div>
+            </div>
+          </div>`).join('')}
+        <p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:18px;">
+          Only these five positions have real, reviewed data behind them in this prototype.
+        </p>
+      </div>`;
+  }
+
+  // STEP 2 — area / account within the chosen position
+  const meta = CT_ROLE_STEPS.find(r => r.key === role);
   window._ctPersonas = [];
   const card = (p) => {
     if (p.chooser){
@@ -523,22 +565,22 @@ ctRoute('#/accounts', function(){
       <div class="leader-geo">${p.area}</div>
     </div>`;
   };
-  const group = (title, sub, items) => `
-    <div class="card-title" style="margin-top:22px;">${title}</div>
-    ${sub ? `<div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:8px;">${sub}</div>` : ''}
-    <div class="leader-grid">${items.map(card).join('')}</div>`;
+  const subs = {
+    mp: 'Verified 11th Parliament (2021–2026) office-holders — one per constituency across the three Local Governments with reviewed data.',
+    lc5: 'Verified district chairpersons and the Jinja City mayor.',
+    lc3: 'Office shown without a personal name — LC3 office-holder names are not in the reviewed records.',
+    lc2: '', lc1: ''
+  };
   return `
     <div class="login-wrap" style="max-width:960px;">
       <div class="login-card card" style="padding-bottom:22px;">
         <div class="login-logo-row">${ctBrandLogos('lg')}</div>
-        <h1 style="font-size:20px;">Choose a demo account</h1>
-        <p>Signed in ✓ (demo — no credentials checked). Now pick who to explore CivicTrack as — every account opens that leader's own geography and data.</p>
+        <h1 style="font-size:20px;">${meta.icon} ${meta.title}</h1>
+        <p>Step 2 of 2 — pick the area / account to explore. Every account opens that leader's own geography and data.</p>
+        <a href="#/accounts" style="font-size:12.5px;font-weight:600;color:var(--ct-black);text-decoration:none;">← Change position</a>
       </div>
-      ${group('Members of Parliament', 'Verified 11th Parliament (2021–2026) office-holders — one per constituency across the three Local Governments with reviewed data.', tiers.mp)}
-      ${group('LC5 — District & city leadership', 'Verified district chairpersons and the Jinja City mayor.', tiers.lc5)}
-      ${group('LC3 — Sub-county / division', 'Office shown without a personal name — LC3 office-holder names are not in the reviewed records.', tiers.lc3)}
-      ${group('LC2 — Parish / ward', '', tiers.lc2)}
-      ${group('LC1 — Village / cell', '', tiers.lc1)}
+      ${subs[role] ? `<div style="font-size:11px;color:var(--ct-text-muted);margin:14px 4px 8px;">${subs[role]}</div>` : ''}
+      <div class="leader-grid">${tiers[role].map(card).join('')}</div>
       <p style="text-align:center;font-size:11px;color:var(--ct-text-muted);margin-top:22px;max-width:560px;margin-left:auto;margin-right:auto;">
         Only these accounts have real, reviewed data behind them. Additional institutional roles — Ministry, NPA, District Planner, CAO, RDC, Development Partner — are planned for a later phase, once real data feeds for each are confirmed. They are not shown here to avoid demonstrating them with invented information.
       </p>
@@ -552,6 +594,7 @@ ctRoute('#/accounts', function(){
 ctRoute('#/directory', function(){
   const s = ctSess();
   const g = ctSessGeo();
+  const dist = ctSessDistrict();
   const leaders = ctLeadersForDistrict(s.geoId);
   window._ctDirLeaders = leaders;
   const mps = leaders.filter(l => l.level === 'constituency');
@@ -566,18 +609,111 @@ ctRoute('#/directory', function(){
       <div class="leader-geo">${l.geoName}</div>
     </div>`;
   };
-  return ctTopbar('Leadership directory', g.name + ' · ' + g.region, s.role) + `
+
+  // -- The oversight & reachability chain: every level, both directions ------
+  const chainRoles = [
+    { key: 'mp',  label: 'MP', icon: '🏛️', blurb: 'National oversight & advocacy — asks downward, escalates upward to ministries & OPM.' },
+    { key: 'lc5', label: 'LC5', icon: '🏢', blurb: 'District delivery — answers to the MP & council, directs the technical wing, asks LC3s.' },
+    { key: 'lc3', label: 'LC3', icon: '🏘️', blurb: 'Sub-county follow-up — reports upward, convenes parishes, chases projects on site.' },
+    { key: 'lc2', label: 'LC2', icon: '🌾', blurb: 'Parish mobilization — PDM SACCO level, verifies what is actually happening.' },
+    { key: 'lc1', label: 'LC1', icon: '🏠', blurb: 'Village eyes & ears — first-hand reports with photo and location.' }
+  ];
+  const youIdx = chainRoles.findIndex(r => r.key === s.role);
+  const chainStrip = `
+    <div class="card">
+      <div class="card-title">The reachability network — ask down, report up</div>
+      <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:10px;">
+        Any NDP IV programme, project or policy question travels this chain in both directions: oversight questions go <strong>down</strong> to where direct oversight lies, ground truth comes <strong>up</strong> with location and photo. Tap a level to see the channel.
+      </div>
+      <div class="chain-strip">
+        ${chainRoles.map((r, i) => `
+          <div class="chain-node${i === youIdx ? ' you' : ''}" onclick="ctDemoModal('${r.label} channel', '${r.blurb} In this demo the contact action is simulated — in production it opens a direct message or call with the office-holder, attached to the programme or project in question.')">
+            <div class="chain-node-icon">${r.icon}</div>
+            <div class="chain-node-label">${r.label}</div>
+            ${i === youIdx ? '<div class="chain-you">YOU</div>' : ''}
+          </div>
+          ${i < chainRoles.length - 1 ? '<div class="chain-link">⇄</div>' : ''}`).join('')}
+      </div>
+    </div>`;
+
+  // -- Verified office-holders ------------------------------------------------
+  const verifiedSection = `
+    <div class="card-title" style="margin-top:14px;">Parliament — 11th Parliament (2021–2026)</div>
+    <div class="leader-grid">${mps.map(card).join('')}</div>
+    <div class="card-title" style="margin-top:16px;">District-wide representation &amp; local government</div>
+    <div class="leader-grid">${districtWide.map(card).join('')}</div>`;
+
+  // -- Technical wing (delivery side) — real CAO names where signed ----------
+  const techs = (CT_DATA.technocrats[g.id] || []);
+  const techSection = `
+    <div class="card-title" style="margin-top:18px;">Technical wing — who leaders ask about delivery</div>
+    <div class="leader-grid">
+      ${techs.map(t => t.verified
+        ? `<div class="leader-card card" onclick="ctDemoModal('${t.office}', '${t.basis}. In production this card opens contact and the accounting officer\\'s latest signed report.')">
+            <div class="leader-avatar">${t.name.split(' ').map(w => w[0]).slice(0, 2).join('')}</div>
+            <div class="leader-name">${t.name}</div>
+            <div class="leader-office">${t.office}</div>
+            <div class="leader-meta"><span class="dim-chip verified">✓ verified</span></div>
+            <div class="leader-geo">${t.basis}</div>
+          </div>`
+        : `<div class="leader-card card" onclick="ctDemoModal('${t.office}', '${t.basis} Placeholder shown with the DEMO disclaimer — no name is invented.')">
+            <div class="leader-avatar acct-avatar-dots">?</div>
+            <div class="leader-name">Office-holder not in reviewed records</div>
+            <div class="leader-office">${t.office}</div>
+            <div class="leader-meta"><span class="dim-chip demo">DEMO placeholder</span></div>
+            <div class="leader-geo">${t.basis}</div>
+          </div>`).join('')}
+      ${['District Engineer — works & infrastructure', 'PDM focal point person — SACCO & disbursements'].map(role =>
+        `<div class="leader-card card" onclick="ctDemoModal('${role.split(' — ')[0]}', 'This technical contact is not named in the reviewed documents. Placeholder shown with the DEMO disclaimer — in production it comes from the district staff establishment.')">
+          <div class="leader-avatar acct-avatar-dots">?</div>
+          <div class="leader-name">Not in reviewed records</div>
+          <div class="leader-office">${role}</div>
+          <div class="leader-meta"><span class="dim-chip demo">DEMO placeholder</span></div>
+          <div class="leader-geo">Reachable for ${g.shortName} delivery questions once the staff register is connected</div>
+        </div>`).join('')}
+    </div>`;
+
+  // -- Lower levels — real area names, placeholder persons --------------------
+  const subAreas = (g.subCounties || []);
+  const lc3Rows = subAreas.map(sc => {
+    const nProjs = dist ? ctProjectsInSubArea(g.id, sc.id).length : 0;
+    return `<div class="row" style="cursor:pointer;" onclick="ctDemoModeToast('Contact LC3 — ${sc.name}')">
+      <div><div class="row-title">LC3 Chairperson — ${sc.name}</div>
+      <div class="row-sub">${nProjs ? nProjs + ' project(s) itemized in reviewed reports · ' : ''}office-holder name not in reviewed records</div></div>
+      <span class="dim-chip demo">DEMO placeholder</span></div>`;
+  }).join('');
+  const mob = ctMobilizationOf(g.id);
+  const parishCount = mob && mob.voters && !mob.voters.notAvailable ? mob.voters.parishes : null;
+  const wardCount = (g.wards || []).length;
+  const lowerSection = `
+    <div class="card-title" style="margin-top:18px;">LC3 — sub-counties &amp; divisions of ${g.shortName} (reachable from MP / LC5)</div>
+    <div class="card" style="padding:0;">${lc3Rows || '<div class="row"><div class="row-sub">No sub-counties itemized.</div></div>'}</div>
+    <div class="card-title" style="margin-top:18px;">LC2 &amp; LC1 — parishes and villages</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--ct-text-secondary);line-height:1.6;">
+        ${parishCount != null
+          ? `The Electoral Commission counts <strong>${parishCount} parishes</strong> and <strong>${mob.voters.pollingStations} polling stations</strong> in ${g.name} — each parish has an LC2 and each village an LC1 chairperson. Their names are not in the reviewed records, so they appear here as <span class="dim-chip demo">DEMO placeholder</span> offices, not invented people.`
+          : wardCount
+            ? `${g.name} has <strong>${wardCount} wards</strong> itemized in this demo's records (Jinja City's divisions/wards). Village and parish office-holder names are not in the reviewed records — placeholders, not invented people.`
+            : `Parish and village office-holder names for ${g.shortName} are not in the reviewed records — placeholders, not invented people.`}
+        When an MP, LC5 or LC3 needs to know what is actually happening with a programme, project or policy, this is where the answer lives: the LC1/LC2 under whose jurisdiction direct oversight lies, reachable with one tap.
+      </div>
+      <div class="action-chip-row" style="margin-top:10px;">
+        <button class="action-chip" onclick="ctDemoModeToast('Contact LC1 chairman')"><span class="action-icon">📞</span>Contact LC1 chairman (demo)</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Contact LC2 parish chief')"><span class="action-icon">📞</span>Contact LC2 parish chief (demo)</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Ground-truth request broadcast')"><span class="action-icon">📡</span>Request ground-truth report (demo)</button>
+      </div>
+    </div>`;
+
+  return ctTopbar('Leadership network', g.name + ' · ' + g.region, s.role) + `
     <div class="content">
-      ${ctBreadcrumb([{ label: 'Dashboard', href: CT_ROLES[s.role].home }, { label: 'Leadership directory' }])}
-      <div class="screen-title">Leadership directory — ${g.name}</div>
-      <div class="screen-sub">Office-holders for geography key <code>${g.id}</code> and its constituencies. Verified against Parliament of Uganda 11th Parliament (2021–2026) records and Electoral Commission declarations. Click any card for the verification detail.</div>
-
-      <div class="card-title" style="margin-top:4px;">Parliament — 11th Parliament (2021–2026)</div>
-      <div class="leader-grid">${mps.map(card).join('')}</div>
-
-      <div class="card-title" style="margin-top:16px;">District-wide representation &amp; local government</div>
-      <div class="leader-grid">${districtWide.map(card).join('')}</div>
-
+      ${ctBreadcrumb([{ label: 'Dashboard', href: CT_ROLES[s.role].home }, { label: 'Leadership network' }])}
+      <div class="screen-title">Leadership network — ${g.name}</div>
+      <div class="screen-sub">Everyone a leader may need to reach about NDP IV delivery — verified office-holders where records exist, clearly-marked placeholders where they don't. Verified against Parliament of Uganda 11th Parliament records and Electoral Commission declarations.</div>
+      ${chainStrip}
+      ${verifiedSection}
+      ${techSection}
+      ${lowerSection}
       <a href="#/place/${g.id}" style="text-decoration:none;">
         <div class="indicator-card clickable" style="margin-top:16px;">
           <div class="icat">Place profile</div>
@@ -585,7 +721,7 @@ ctRoute('#/directory', function(){
           <div class="cta">Open place profile →</div>
         </div>
       </a>
-      <div class="footer-note">MP records: Parliament of Uganda 11th Parliament membership, cross-checked with press coverage of the 2021 results. LC5/Mayor records: Electoral Commission declarations.</div>
+      <div class="footer-note">MP records: Parliament of Uganda 11th Parliament membership, cross-checked with press coverage of the 2021 results. LC5/Mayor records: Electoral Commission declarations. CAO records: signed LG performance reports. Lower-level and technical contacts: placeholders under the DEMO disclaimer until the Electoral Commission LC rolls and district staff registers are connected.</div>
     </div>`;
 });
 
@@ -666,7 +802,7 @@ ctRoute('#/place/:geoId', function(session, params){
         <div class="row"><div class="row-title">Overall released (${dist.quarter})</div><div class="row-sub" style="text-align:right;">${dist.budget.expenditurePct}% of ${ctFormatUGX(dist.budget.revised || dist.budget.approved)}</div></div>
         <div class="row"><div class="row-title">Programmes tracked</div><div class="row-sub" style="text-align:right;">${dist.programmes.length}</div></div>
         <div class="row"><div class="row-title">Capital projects tracked</div><div class="row-sub" style="text-align:right;">${dist.projects.length} (${dist.projects.filter(p => p.stageStatus === 'stalled').length} stalled)</div></div>
-        <a href="javascript:void(0)" onclick="ctProgrammeBreakdownModal('${distId}')" class="cta-link">Full Programme breakdown →</a>
+        <a href="#/programmes" class="cta-link">Open in the 4 clusters &amp; 18 programmes →</a>
       </div>`;
   } else if (dist){
     progPanel = `
@@ -675,7 +811,7 @@ ctRoute('#/place/:geoId', function(session, params){
         <div class="row"><div class="row-title">Approved budget FY2025/26</div><div class="row-sub" style="text-align:right;">${ctFormatUGX(dist.budget.current)}</div></div>
         <div class="row"><div class="row-title">Funded projects</div><div class="row-sub" style="text-align:right;">${dist.projects.length}</div></div>
         <div style="font-size:10.5px;color:var(--ct-text-muted);padding-top:4px;">${dist.documentType}</div>
-        <a href="javascript:void(0)" onclick="ctProgrammeBreakdownModal('${distId}')" class="cta-link">Full budget breakdown →</a>
+        <a href="#/programmes" class="cta-link">Open in the 4 clusters &amp; 18 programmes →</a>
       </div>`;
   } else {
     progPanel = `<div class="card place-panel demo-watermark-host">${ctDemoWatermark()}<div class="card-title">NDP IV Programmes ${ctDimChip(false)}</div><p style="font-size:12px;color:var(--ct-text-secondary);">No programme data recorded for this geography.</p></div>`;
@@ -721,42 +857,40 @@ ctRoute('#/mp/dashboard', function(){
   const stalledAll = dist.projects.filter(p => p.stageStatus === 'stalled').length;
   const mob = ctMobilizationOf(g.id);
 
-  let tiles = '';
-  if (dist.dataKind === 'performance'){
-    tiles = dist.programmes.map(p =>
-      ctProgrammeTile(p, { paceTarget: dist.paceTarget, uidSuffix: 'mp', onClick: `ctProgrammeBreakdownModal('${g.id}','${p.name}')` })
-    ).join('');
-  } else {
-    tiles = dist.projects.map(p => `
-      <div class="indicator-card clickable" onclick="ctProgrammeBreakdownModal('${g.id}')">
-        <div class="icat">${p.sector}</div>
-        <div class="ival" style="font-size:19px;">${ctFormatUGX(p.amount)}</div>
-        <div class="isub">${p.name}</div>
-        <div class="cta">Budget breakdown →</div>
-      </div>`).join('');
-  }
-
-  const pdmTile = (mob && mob.pdm && !mob.pdm.notAvailable)
-    ? `<div class="indicator-card clickable" onclick="ctPDMModal('${g.id}')">
-        <div class="icat">Parish Development Model</div>
-        <div class="ival good">${mob.pdm.householdsFacilitated.toLocaleString()}</div>
-        <div class="isub">households facilitated across ${mob.pdm.parishes} parishes · housed under Programmes with Emyooga &amp; UWEP/YLP</div>
-        <div class="cta">Open under Programmes →</div>
-      </div>`
-    : `<div class="indicator-card clickable" onclick="ctPDMModal('${g.id}')">
-        <div class="icat">Parish Development Model</div>
-        <div class="ival" style="font-size:16px;color:var(--ct-text-muted);">DEMO</div>
-        <div class="isub">PDM figures not in the reviewed reports for ${g.shortName} · housed under Programmes</div>
-        <div class="cta">Open under Programmes →</div>
+  // Cluster tiles: the 18 NDP IV programmes compressed into the 4 clusters —
+  // the dashboard stays a compass, the full 18 live one tap away at #/programmes.
+  const matchProg = (pn) => (dist.programmes || []).find(p => ctNormProg(p.name) === ctNormProg(pn)
+    || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(pn));
+  const tiles = CT_DATA.ndp4.clusters.map(c => {
+    if (dist.dataKind === 'performance'){
+      const reported = c.programmes.map(pn => matchProg(pn)).filter(Boolean);
+      const behind = reported.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < dist.paceTarget);
+      const weakest = reported.slice().sort((a, b) => (a.pctOfRevised != null ? a.pctOfRevised : a.pct) - (b.pctOfRevised != null ? b.pctOfRevised : b.pct))[0];
+      const wpct = weakest ? (weakest.pctOfRevised != null ? weakest.pctOfRevised : weakest.pct) : null;
+      return `<div class="indicator-card clickable" onclick="location.hash='#/programmes?cluster=${c.id}'">
+        <div class="icat">${c.icon} ${c.name}</div>
+        <div class="ival ${behind.length ? 'amber' : 'good'}" style="font-size:22px;">${behind.length} behind</div>
+        <div class="isub">${reported.length} of ${c.programmes.length} programmes reported · weakest: ${weakest ? weakest.name + ' (' + wpct + '%)' : '—'}</div>
+        <div class="cta">Open cluster →</div>
       </div>`;
+    }
+    const mine = dist.projects.filter(p => { const cp = ctCityProg(p); return cp && c.programmes.some(pn => ctNormProg(pn) === ctNormProg(cp)); });
+    const sum = mine.reduce((a, p) => a + (p.amount || 0), 0);
+    return `<div class="indicator-card clickable" onclick="location.hash='#/programmes?cluster=${c.id}'">
+      <div class="icat">${c.icon} ${c.name}</div>
+      <div class="ival" style="font-size:22px;">${ctFormatUGX(sum)}</div>
+      <div class="isub">${mine.length} funded project${mine.length === 1 ? '' : 's'} in the FY2025/26 budget</div>
+      <div class="cta">Open cluster →</div>
+    </div>`;
+  }).join('');
 
   return ctTopbar(ctMpTitle(ctx), g.name + ', ' + g.region + (ctx.mp ? ' · verified against Parliament records' : ''), 'mp') + `
     <div class="content">
       <div class="screen-title">Dashboard</div>
       <div class="screen-sub">
         ${dist.dataKind === 'performance'
-          ? `NDP IV Programmes in ${g.name} (${dist.quarter}, pace target ${dist.paceTarget}%) — district-wide figures as reported by the LG; projects are scoped to ${ctx.consName} where the report names the sub-county.`
-          : `${g.name}: ${dist.documentType} — figures shown are funded amounts, not % released.`}
+          ? `NDP IV in ${g.name} (${dist.quarter}, pace target ${dist.paceTarget}%) — the 18 programmes compressed into their 4 clusters; projects are scoped to ${ctx.consName} where the report names the sub-county.`
+          : `${g.name}: ${dist.documentType} — funded amounts by cluster, not % released.`}
       </div>
 
       <div class="indicator-grid">
@@ -769,7 +903,6 @@ ctRoute('#/mp/dashboard', function(){
             <div class="cta">View all projects →</div>
           </div>
         </a>
-        ${pdmTile}
         <a href="#/directory" style="text-decoration:none;">
           <div class="indicator-card clickable">
             <div class="icat">Leadership directory</div>
@@ -787,6 +920,8 @@ ctRoute('#/mp/dashboard', function(){
           </div>
         </a>
       </div>
+
+      ${ctRolePanel('mp')}
 
       <div class="card">
         <div class="card-title">Collect data from your constituency</div>
@@ -989,7 +1124,7 @@ ctRoute('#/lc5/dashboard', function(){
       <div class="compare-row"><span class="label">Overall released</span><span class="value amber">${dist.budget.expenditurePct}%</span></div>
       ${extraRows}
       <div class="compare-row"><span class="label">Stalled projects flagged</span><span class="value danger">${dist.projects.filter(p => p.stageStatus === 'stalled').length}</span></div>
-      <div class="compare-row" onclick="event.stopPropagation();ctPDMModal('${distId}')" style="cursor:pointer;"><span class="label">PDM households facilitated</span>${(ctMobilizationOf(distId).pdm && !ctMobilizationOf(distId).pdm.notAvailable) ? `<span class="value good">${ctMobilizationOf(distId).pdm.householdsFacilitated.toLocaleString()} ›</span>` : '<span class="value" style="color:var(--ct-text-muted);font-weight:500;font-size:12px;">DEMO — not in report ›</span>'}</div>
+      <div class="compare-row" onclick="event.stopPropagation();location.hash='#/programmes'" style="cursor:pointer;"><span class="label">Flagship initiatives</span><span class="value" style="font-size:11.5px;font-weight:600;">PDM · Emyooga · UWEP/YLP — under Programmes ›</span></div>
       <div class="compare-cta">Full Programme breakdown →</div>
     </div>`;
 
@@ -1054,6 +1189,8 @@ ctRoute('#/lc5/dashboard', function(){
           <div class="cta">Open directory →</div>
         </div>
       </a>
+
+      ${ctRolePanel('lc5')}
 
       ${ctRecommendations(mine, 'lc5')}
       <div class="footer-note">Sample screen — Kayunga: FY2025/26 Q2. Jinja District: FY2025/26 Q1. Jinja City: approved budget FY2025/26.</div>
@@ -1263,6 +1400,7 @@ ctRoute('#/lc3/dashboard', function(){
             <div class="cta">Open collection prompts →</div>
           </div>
         </a>
+        ${ctRolePanel('lc3')}
         ${ctRecommendations(g.id, 'lc3')}
         <div class="footer-note">Sample screen — Jinja City's approved FY2025/26 Budget Estimates, organized by NDP IV Programme.</div>
       </div>`;
@@ -1325,6 +1463,7 @@ ctRoute('#/lc3/dashboard', function(){
           <div class="cta">Open collection prompts →</div>
         </div>
       </a>
+      ${ctRolePanel('lc3')}
       ${ctRecommendations(g.id, 'lc3')}
       <div class="footer-note">Sample screen — ${g.name} LG Performance Report, ${dist.quarter}.</div>
     </div>`;
@@ -1430,6 +1569,8 @@ ctRoute('#/lc2/dashboard', function(){
       <div class="content">
         <div class="screen-title">Dashboard</div>
         <div class="screen-sub">Ward-level view, Jinja City FY2025/26 approved budget</div>
+        ${ctRolePanel('lc2')}
+        ${ctCommunityScorecard('LC2')}
         <div class="metric-card" style="margin-bottom:12px;cursor:pointer;" onclick="ctLC2NamulesaModal()">
           <div class="metric-label">Namulesa Market completion</div>
           <div class="metric-value good">${ctFormatUGX(proj.amount)}</div>
@@ -1471,6 +1612,8 @@ ctRoute('#/lc2/dashboard', function(){
     <div class="content">
       <div class="screen-title">Dashboard</div>
       <div class="screen-sub">Parish-level view — ${g.name}</div>
+      ${ctRolePanel('lc2')}
+      ${ctCommunityScorecard('LC2')}
       ${ctDemoLevelPanel('Parish projects & mobilization — ' + wardName,
         (g.levelsNote || 'Parish-level items are not itemized in the reviewed documents for this Local Government.') +
         ' This dashboard would list the parish\'s projects, PDM SACCO status and mobilization tasks once the parish register is connected.')}
@@ -1572,6 +1715,7 @@ ctRoute('#/lc1/dashboard', function(){
     const proj = ctProgrammeOf('UG-JJC').projects.find(p => p.id === 'namulesa-market');
     return ctTopbar(cellName, 'Jinja North Ward, Jinja City', 'lc1') + `
       <div class="content">
+        ${ctRolePanel('lc1')}
         <div class="card" style="text-align:center;padding:28px 16px;cursor:pointer;" onclick="ctLC1ProjectModal()">
           <div class="card-title" style="font-size:16px;justify-content:center;">Project near you</div>
           <p style="font-size:14px;margin:8px 0 16px;">${proj.name} — completion works, funded ${ctFormatUGX(proj.amount)}</p>
@@ -1592,12 +1736,14 @@ ctRoute('#/lc1/dashboard', function(){
             <div class="cta">Open collection prompts →</div>
           </div>
         </a>
+        ${ctCommunityScorecard('LC1')}
         <div class="footer-note">Sample screen — offline-first, designed for low-end Android use.</div>
       </div>`;
   }
 
   return ctTopbar(cellName, g.name + ', ' + g.region, 'lc1') + `
     <div class="content">
+      ${ctRolePanel('lc1')}
       ${ctDemoLevelPanel('Project near you — ' + cellName,
         (g.levelsNote || 'Village-level items are not itemized in the reviewed documents for this Local Government.') +
         ' This screen would show the nearest funded project to this village once the village register is connected.')}
@@ -1609,6 +1755,7 @@ ctRoute('#/lc1/dashboard', function(){
           <div class="cta">Open collection prompts →</div>
         </div>
       </a>
+            ${ctCommunityScorecard('LC1')}
       <div class="footer-note">Sample screen — village-level detail shown as DEMO where the reviewed documents do not itemize it.</div>
     </div>`;
 });
@@ -1703,7 +1850,13 @@ const CT_COLLECT_ASPECTS = [
     prompt: 'SACCO meetings, disbursement progress, enterprise activity…' },
   { id: 'market', icon: '🧺', label: 'Market & local revenue', programme: 'Private Sector Development',
     statuses: ['Operating normally', 'Partially operating', 'Closed / stalled'],
-    prompt: 'Stall occupancy, vendor concerns, revenue collection…' }
+    prompt: 'Stall occupancy, vendor concerns, revenue collection…' },
+  { id: 'community', icon: '🗣️', label: 'Community mobilization', programme: 'Development Plan Implementation',
+    statuses: ['Meeting held', 'Meeting planned', 'No recent activity'],
+    prompt: 'Barazas, parish meetings, citizen priorities raised…' },
+  { id: 'environment', icon: '🌳', label: 'Environment & natural resources', programme: 'Natural Resources, Environment, Climate Change, Land and Water Management',
+    statuses: ['Well kept', 'Under pressure', 'Degraded'],
+    prompt: 'Wetland encroachment, tree cover, dumping sites…' }
 ];
 
 ctRoute('#/collect', function(){
@@ -1726,6 +1879,17 @@ ctRoute('#/collect', function(){
       <div class="card">
         <div class="card-title">${active.icon} ${active.label}</div>
         <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:12px;">NDP IV aspect: ${active.programme} · reporting from <strong>${areaName}</strong></div>
+
+        <div class="loc-block">
+          <div class="loc-title">📍 Location of this report <span class="loc-required">required</span></div>
+          <div class="loc-row"><span class="loc-key">Area (from your account)</span><span class="loc-val">${areaName === g.name ? areaName : areaName + ', ' + g.name}</span></div>
+          <input class="login-field" id="ctLocLandmark" type="text" placeholder="Village / landmark — e.g. near Namulesa Market gate" autocomplete="off" style="margin:8px 0;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn" style="padding:8px 14px;font-size:12px;width:auto;" onclick="ctCaptureGPS()">📡 Capture GPS (demo)</button>
+            <span id="ctGpsOut" style="font-size:11.5px;color:var(--ct-text-muted);">no coordinates attached yet</span>
+          </div>
+          <div class="loc-note">Every report is pinned to a place. A single incident at one site is shown as <em>that site</em> — leader dashboards only draw wider conclusions from many located reports, so one isolated problem never paints the picture for everyone.</div>
+        </div>
 
         <p style="font-size:13px;font-weight:500;margin-bottom:8px;">What is the status?</p>
         <div class="choice-row">
@@ -1750,3 +1914,245 @@ ctRoute('#/collect', function(){
       <div class="footer-note">The photo preview is real, but in this demo the image never leaves your device and submissions are not stored. In production, reports route to the relevant leader dashboards and attach to the linked project.</div>
     </div>`;
 });
+
+// ---------------------------------------------------------------------------
+// GPS CAPTURE (demo) — writes plausible coordinates near the session district.
+// In production this would use the device GPS; here it demonstrates that every
+// field report carries a location pin.
+// ---------------------------------------------------------------------------
+const CT_GPS_BASE = { 'UG-KYG': [0.7021, 32.9003], 'UG-JJD': [0.4710, 33.0930], 'UG-JJC': [0.4244, 33.2041] };
+function ctCaptureGPS(){
+  const s = ctSess();
+  const base = CT_GPS_BASE[s.geoId] || [0.4244, 33.2041];
+  const lat = (base[0] + (Math.random() - 0.5) * 0.04).toFixed(5);
+  const lng = (base[1] + (Math.random() - 0.5) * 0.04).toFixed(5);
+  const out = document.getElementById('ctGpsOut');
+  if (out) out.innerHTML = '📌 <strong>' + lat + '° N, ' + lng + '° E</strong> attached (demo coordinates)';
+  ctDemoModeToast('GPS coordinates captured');
+}
+
+// ---------------------------------------------------------------------------
+// NDP IV PROGRAMMES — the whole plan organised as 4 clusters / 18 programmes
+// (NPA, NDP IV Table 3.3). This is the single doorway to every programme,
+// including the flagship initiatives (PDM, Emyooga, UWEP/YLP) — so PDM is
+// reached as ONE programme among many, not as a headline of its own.
+// ---------------------------------------------------------------------------
+// Map a Jinja City funded project onto its NDP IV programme (city budget lines
+// carry sectors, not programme names).
+function ctCityProg(p){
+  if (p.programme) return p.programme;
+  const map = {
+    'health': 'Human Capital Development',
+    'education': 'Human Capital Development',
+    'roads': 'Integrated Transport Infrastructure and Services',
+    'water': 'Natural Resources, Environment, Climate Change, Land and Water Management',
+    'sanitation': 'Sustainable Urbanisation and Housing',
+    'private sector development': 'Private Sector Development'
+  };
+  return map[(p.sector || '').toLowerCase()] || null;
+}
+
+// One programme row inside a cluster card.
+function ctClusterProgrammeRow(dist, distId, progName){
+  if (dist.dataKind === 'performance'){
+    const hit = (dist.programmes || []).find(p => ctNormProg(p.name) === ctNormProg(progName)
+      || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(progName));
+    if (hit){
+      const pct = hit.pctOfRevised != null ? hit.pctOfRevised : hit.pct;
+      const cls = pct >= dist.paceTarget ? 'good' : (pct < 20 ? 'danger' : 'amber');
+      return `<div class="row" style="cursor:pointer;" onclick="ctProgrammeBreakdownModal('${distId}','${hit.name}')">
+        <div class="row-title" style="max-width:66%;font-weight:500;">${progName}</div>
+        <div class="row-sub" style="text-align:right;"><span class="subvalue ${cls}" style="font-weight:700;">${pct}%</span></div></div>`;
+    }
+    return `<div class="row" style="cursor:pointer;opacity:0.75;" onclick="ctDemoModal('${progName}', 'This NDP IV programme is not itemized in the ${dist.quarter} report reviewed for this Local Government. It may be delivered through national votes or not yet funded locally — no figures are invented here.')">
+      <div class="row-title" style="max-width:66%;font-weight:400;color:var(--ct-text-muted);">${progName}</div>
+      <div class="row-sub" style="text-align:right;font-size:10.5px;">not itemized ›</div></div>`;
+  }
+  // Budget-kind district (Jinja City): show funded projects mapped to the programme.
+  const mine = (dist.projects || []).filter(p => ctNormProg(ctCityProg(p) || '') === ctNormProg(progName));
+  if (mine.length){
+    const sum = mine.reduce((a, p) => a + (p.amount || 0), 0);
+    return `<div class="row" style="cursor:pointer;" onclick="ctProgrammeBreakdownModal('${distId}')">
+      <div class="row-title" style="max-width:66%;font-weight:500;">${progName}</div>
+      <div class="row-sub" style="text-align:right;">${mine.length} project${mine.length > 1 ? 's' : ''} · ${ctFormatUGX(sum)}</div></div>`;
+  }
+  return `<div class="row" style="cursor:pointer;opacity:0.75;" onclick="ctDemoModal('${progName}', 'No FY2025/26 funded project under this programme appears in the budget extract reviewed for Jinja City — no figures are invented here.')">
+    <div class="row-title" style="max-width:66%;font-weight:400;color:var(--ct-text-muted);">${progName}</div>
+    <div class="row-sub" style="text-align:right;font-size:10.5px;">not funded ›</div></div>`;
+}
+
+ctRoute('#/programmes', function(){
+  const s = ctSess();
+  const g = ctSessGeo();
+  const dist = ctSessDistrict();
+  const distId = ctDistrictIdOf(s.geoId);
+  const q = ctGetQuery();
+  const focus = q.cluster ? CT_DATA.ndp4.clusters.find(c => c.id === q.cluster) : null;
+
+  // Cluster card: programmes + a one-line health summary for this district.
+  const clusterCard = (c) => {
+    let summary = '';
+    if (dist.dataKind === 'performance'){
+      const reported = c.programmes.filter(pn =>
+        (dist.programmes || []).some(p => ctNormProg(p.name) === ctNormProg(pn)
+          || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(pn)));
+      const behind = reported.filter(pn => {
+        const hit = (dist.programmes || []).find(p => ctNormProg(p.name) === ctNormProg(pn)
+          || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(pn));
+        const pct = hit.pctOfRevised != null ? hit.pctOfRevised : hit.pct;
+        return pct < dist.paceTarget;
+      });
+      summary = `${reported.length} of ${c.programmes.length} reported · <strong class="${behind.length ? 'ct-danger-text' : ''}">${behind.length} behind pace</strong>`;
+    } else {
+      const funded = c.programmes.filter(pn => (dist.projects || []).some(p => ctNormProg(ctCityProg(p) || '') === ctNormProg(pn)));
+      summary = `${funded.length} of ${c.programmes.length} with funded FY2025/26 projects`;
+    }
+    return `<div class="card cluster-card">
+      <div class="cluster-head" onclick="location.hash='${focus ? '#/programmes' : '#/programmes?cluster=' + c.id}'">
+        <span class="cluster-icon">${c.icon}</span>
+        <div style="flex:1;">
+          <div class="cluster-name">${c.name}</div>
+          <div class="cluster-meta">${c.programmes.length} programmes · ${summary}</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="cluster-body" style="${focus ? '' : 'display:none;'}">
+        ${c.programmes.map(pn => ctClusterProgrammeRow(dist, distId, pn)).join('')}
+      </div>
+    </div>`;
+  };
+
+  const flags = ctFlagshipsOf(distId);
+  const flagshipSection = `
+    <div class="card-title" style="margin-top:20px;">Flagship initiatives under these programmes</div>
+    <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:8px;">
+      "Full operationalisation of the Parish Development Model and Emyooga" is an NDP IV core public project — UGX 1,594.0bn over the plan period (MoFPED IBP). Reached here as one part of the wider programme landscape.
+    </div>
+    <div class="card" style="padding:0;">
+      ${flags.map(f => `
+        <div class="row" style="cursor:pointer;" onclick="ctFlagshipModal('${distId}','${f.id}')">
+          <div><div class="row-title">${f.name}</div>
+          <div class="row-sub">${f.status === 'reported' ? f.summary : (f.status === 'issue' ? '⚠ ' + f.summary : 'DEMO — no geo-level figures in reviewed documents')}</div></div>
+          <span class="chevron">›</span></div>`).join('')}
+    </div>`;
+
+  const belowPaceN = dist.dataKind === 'performance'
+    ? dist.programmes.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < dist.paceTarget - 15).length : 0;
+  const stalledN = dist.projects.filter(p => p.stageStatus === 'stalled').length;
+  const actions = (belowPaceN || stalledN) ? ctLeaderActions([
+    { icon: '📞', label: 'Contact LC1 chairman on the ground' },
+    { icon: '📄', label: 'Request CAO explanation' },
+    { icon: '⚡', label: 'Escalate to OPM' },
+    { icon: '🏛️', label: 'Table before council' }
+  ], { title: `Challenges visible in this landscape (${belowPaceN} programme(s) well behind pace · ${stalledN} stalled project(s)) — options to consider` }) : '';
+
+  return ctTopbar('Programmes', g.name + ' · 4 clusters · 18 programmes', s.role) + `
+    <div class="content">
+      ${ctBreadcrumb([{ label: 'Dashboard', href: CT_ROLES[s.role].home }, { label: 'Programmes' }])}
+      <div class="screen-title">NDP IV — 4 clusters, 18 programmes</div>
+      <div class="screen-sub">The whole Fourth National Development Plan, mapped to what ${g.name} actually reports (${dist.dataKind === 'performance' ? 'LG Performance Report, ' + dist.quarter + ' · pace target ' + dist.paceTarget + '%' : 'Approved Budget Estimates, FY2025/26'}). Tap a cluster to open its programmes; tap a programme for the district breakdown.</div>
+      ${focus ? `<a href="#/programmes" style="display:inline-block;font-size:12.5px;font-weight:600;color:var(--ct-black);text-decoration:none;margin-bottom:10px;">← All clusters</a>` : ''}
+      <div class="cluster-grid">
+        ${(focus ? [focus] : CT_DATA.ndp4.clusters).map(clusterCard).join('')}
+      </div>
+      ${focus ? '' : flagshipSection}
+      ${focus ? '' : actions}
+      <div class="footer-note">Structure: ${CT_DATA.ndp4.source}. District figures: ${dist.dataKind === 'performance' ? g.name + ' LG Performance Report (' + dist.quarter + '), Section A2' : 'Jinja City Approved Budget Estimates, FY2025/26'}.</div>
+    </div>`;
+});
+
+// ---------------------------------------------------------------------------
+// RESPONSIBILITY PANELS — every position's NDP IV responsibilities shown as
+// indicators. The cluster/programme issues are shared across levels; the
+// CONTRIBUTION TYPE differs per level (oversight vs delivery vs convening vs
+// mobilizing vs observing). Real figures where the reviewed documents carry
+// them; DEMO chips where they don't.
+// ---------------------------------------------------------------------------
+function ctRolePanel(roleKey){
+  const s = ctSess();
+  const dist = ctSessDistrict();
+  const behind = dist && dist.dataKind === 'performance'
+    ? dist.programmes.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < dist.paceTarget) : [];
+  const stalled = dist ? dist.projects.filter(p => p.stageStatus === 'stalled') : [];
+  const funded = dist ? dist.projects.length : 0;
+  const chipReal = (v, l) => `<div class="role-ind"><div class="role-ind-val">${v}</div><div class="role-ind-label">${l}</div></div>`;
+  const chipDemo = (l) => `<div class="role-ind demo-ind"><div class="role-ind-val">DEMO</div><div class="role-ind-label">${l}</div></div>`;
+  const defs = {
+    mp: {
+      title: '🏛️ Your role in NDP IV — oversight, representation & advocacy',
+      note: 'Programme 14 (Legislature, Oversight and Representation) is literally your mandate: you watch the other 17.',
+      chips: dist && dist.dataKind === 'performance'
+        ? chipReal(behind.length, 'programmes behind pace in your district') + chipReal(stalled.length, 'stalled projects to raise') + chipDemo('questions tabled (demo counter)') + chipDemo('committee follow-ups (demo)')
+        : chipReal(funded, 'funded projects in the city budget') + chipDemo('questions tabled (demo counter)') + chipDemo('committee follow-ups (demo)')
+    },
+    lc5: {
+      title: '🏢 Your role in NDP IV — district delivery & coordination',
+      note: 'You account for absorption and coordinate the technical wing (CAO) and the council.',
+      chips: dist && dist.dataKind === 'performance'
+        ? chipReal(dist.budget.expenditurePct + '%', 'budget absorption (' + dist.quarter + ')') + chipReal(behind.length, 'programmes behind pace') + chipReal(stalled.length, 'stalled projects') + chipDemo('council motions (demo)')
+        : chipReal(ctFormatUGX(dist.budget.current), 'approved FY2025/26 budget') + chipReal(funded, 'funded projects') + chipDemo('council motions (demo)')
+    },
+    lc3: {
+      title: '🏘️ Your role in NDP IV — convene & follow up across parishes',
+      note: 'Sub-county chief: you follow up projects that span parishes and convene barazas where delivery is explained.',
+      chips: chipReal(stalled.length, 'stalled projects district-wide to watch') + chipDemo('site visits logged (demo)') + chipDemo('barazas held (demo)')
+    },
+    lc2: {
+      title: '🌾 Your role in NDP IV — mobilize the parish & verify on the ground',
+      note: 'The parish is where the PDM lives (SACCO level) — and where non-financial progress is first visible.',
+      chips: chipDemo('parish meetings held (demo)') + chipDemo('PDM SACCO sittings attended (demo)') + chipDemo('site checks filed (demo)')
+    },
+    lc1: {
+      title: '🏠 Your role in NDP IV — observe & report, village by village',
+      note: 'You are the eyes and ears: every school, water point, road and PDM group in the village, reported with location and photo.',
+      chips: chipDemo('reports filed (demo)') + chipDemo('photo evidence attached (demo)') + chipDemo('escalations answered (demo)')
+    }
+  };
+  const d = defs[roleKey];
+  if (!d) return '';
+  return `
+    <div class="role-panel">
+      <div class="role-panel-title">${d.title}</div>
+      <div class="role-panel-note">${d.note}</div>
+      <div class="role-ind-row">${d.chips}</div>
+      <a href="#/programmes" style="font-size:12px;font-weight:600;color:var(--ct-black);text-decoration:none;">See how your work maps onto the 4 clusters &amp; 18 programmes →</a>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// COMMUNITY SCORECARD — the granular, NON-FINANCIAL NDP IV signals an LC1/LC2
+// is responsible for. LC1/LC2 do far more than watch construction: attendance,
+// functionality, meetings, environment. Each row is a yes/no/attention signal
+// per village or parish — reported through #/collect with a location pin, so
+// one bad site never stands in for the whole area. All rows start unreported
+// (DEMO) — no status is invented.
+// ---------------------------------------------------------------------------
+const CT_SCORECARD = [
+  { icon: '🏫', label: 'Pupil attendance at the nearest school', aspect: 'education', prog: 'Human Capital Development' },
+  { icon: '💧', label: 'Nearest water point functional', aspect: 'water', prog: 'Natural Resources & Environment' },
+  { icon: '🏥', label: 'Health facility staffed, drugs in stock', aspect: 'health', prog: 'Human Capital Development' },
+  { icon: '👥', label: 'PDM group active & meeting', aspect: 'pdm', prog: 'Private Sector Development / PDM' },
+  { icon: '🗣️', label: 'Community meeting held on local priorities', aspect: 'community', prog: 'Development Plan Implementation' },
+  { icon: '🌳', label: 'Wetlands & tree cover respected locally', aspect: 'environment', prog: 'Natural Resources & Environment' },
+  { icon: '🧺', label: 'Community market operating normally', aspect: 'market', prog: 'Private Sector Development' },
+  { icon: '🛣️', label: 'Access road passable this season', aspect: 'roads', prog: 'Integrated Transport' }
+];
+function ctCommunityScorecard(levelLabel){
+  return `
+    <div class="card">
+      <div class="card-title">${levelLabel} community scorecard — beyond infrastructure</div>
+      <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:10px;">
+        Your non-financial NDP IV deliverables, village by village. Nothing is reported yet — report what you see and each row lights up for <em>your</em> ${levelLabel === 'LC2' ? 'parish' : 'village'} only (every report carries a location, so no isolated incident speaks for everyone).
+      </div>
+      ${CT_SCORECARD.map(r => `
+        <div class="score-row">
+          <span class="score-icon">${r.icon}</span>
+          <div style="flex:1;">
+            <div class="score-label">${r.label}</div>
+            <div class="score-prog">${r.prog}</div>
+          </div>
+          <span class="dim-chip demo">not yet reported</span>
+          <a class="score-report" href="#/collect?aspect=${r.aspect}">Report →</a>
+        </div>`).join('')}
+    </div>`;
+}

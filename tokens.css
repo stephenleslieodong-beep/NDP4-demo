@@ -759,3 +759,79 @@ select.field{appearance:auto;cursor:pointer;color:var(--ct-text);}
   .card, .indicator-grid > *, .leader-grid > *, .geo-grid > *, .modal-box, .toast{animation:none !important;}
   .btn:active{transform:none;}
 }
+
+
+/* ==========================================================================
+   SECTION 23 — TURN 4: NDP IV clusters, reachability chain, role panels,
+   community scorecards, location blocks, two-step account picker
+   ========================================================================== */
+
+/* --- Two-step account picker: position cards --- */
+.role-step-card{display:flex;align-items:center;gap:14px;cursor:pointer;padding:14px 16px;
+  transition:border-color var(--duration-fast) var(--ease-standard), transform 0.08s var(--ease-standard);}
+.role-step-card:hover{border-color:var(--ct-yellow);}
+.role-step-card:active{transform:scale(0.99);}
+.role-step-icon{font-size:26px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  background:var(--ct-yellow-soft);border-radius:12px;flex-shrink:0;}
+
+/* --- Cluster cards & grid (#/programmes) --- */
+.cluster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;}
+.cluster-card{padding:0;overflow:hidden;}
+.cluster-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
+  transition:background var(--duration-fast) var(--ease-standard);}
+.cluster-head:hover{background:var(--ct-yellow-soft);}
+.cluster-icon{font-size:24px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;
+  background:var(--ct-black);border-radius:12px;flex-shrink:0;}
+.cluster-name{font-size:14px;font-weight:700;color:var(--ct-text);}
+.cluster-meta{font-size:11px;color:var(--ct-text-muted);margin-top:2px;}
+.cluster-body{border-top:1px solid var(--ct-border);padding:4px 16px 12px;animation:ct-fade-slide-up var(--duration-base) var(--ease-out) both;}
+.cluster-body .row{padding:9px 0;}
+.ct-danger-text{color:var(--ct-red);}
+
+/* --- Reachability chain strip (directory) --- */
+.chain-strip{display:flex;align-items:stretch;gap:3px;overflow-x:auto;padding:11px 2px 4px;}
+.chain-node{flex:1;min-width:60px;text-align:center;padding:10px 6px;border:1.5px solid var(--ct-border);
+  border-radius:12px;cursor:pointer;background:var(--ct-card);position:relative;
+  transition:border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);}
+.chain-node:hover{border-color:var(--ct-yellow);background:var(--ct-yellow-soft);}
+.chain-node.you{border-color:var(--ct-black);background:var(--ct-yellow-soft);box-shadow:0 0 0 2px var(--ct-yellow);}
+.chain-node-icon{font-size:20px;}
+.chain-node-label{font-size:11.5px;font-weight:700;margin-top:4px;}
+.chain-you{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--ct-black);color:var(--ct-yellow);
+  font-size:8.5px;font-weight:800;letter-spacing:0.08em;padding:2px 7px;border-radius:99px;}
+.chain-link{display:flex;align-items:center;color:var(--ct-text-muted);font-size:15px;flex-shrink:0;}
+
+/* --- Role panels (responsibilities as indicators) --- */
+.role-panel{background:var(--ct-black);border-radius:16px;padding:16px;margin-bottom:14px;color:#fff;
+  animation:ct-fade-slide-up var(--duration-slow) var(--ease-out) both;}
+.role-panel-title{font-size:13.5px;font-weight:800;color:var(--ct-yellow);}
+.role-panel-note{font-size:11px;color:rgba(255,255,255,0.72);margin:4px 0 12px;line-height:1.5;}
+.role-panel a{color:var(--ct-yellow) !important;}
+.role-ind-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px;}
+.role-ind{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:9px 10px;}
+.role-ind-val{font-size:17px;font-weight:800;color:var(--ct-yellow);line-height:1.15;}
+.role-ind.demo-ind .role-ind-val{font-size:10.5px;letter-spacing:0.06em;color:rgba(255,255,255,0.55);}
+.role-ind-label{font-size:9.8px;color:rgba(255,255,255,0.72);margin-top:3px;line-height:1.35;}
+
+/* --- Community scorecard (LC1/LC2 non-financial deliverables) --- */
+.score-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--ct-border);}
+.score-row:last-child{border-bottom:none;}
+.score-icon{font-size:17px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  background:var(--ct-panel-grey);border-radius:9px;flex-shrink:0;}
+.score-label{font-size:12.5px;font-weight:600;color:var(--ct-text);}
+.score-prog{font-size:10px;color:var(--ct-text-muted);}
+.score-report{font-size:11.5px;font-weight:700;color:var(--ct-black);text-decoration:none;white-space:nowrap;
+  padding:5px 10px;border:1.5px solid var(--ct-black);border-radius:99px;
+  transition:background var(--duration-fast) var(--ease-standard),color var(--duration-fast) var(--ease-standard);}
+.score-report:hover{background:var(--ct-black);color:var(--ct-yellow);}
+
+/* --- Location block (field data collection) --- */
+.loc-block{border:1.5px dashed var(--ct-border);border-radius:12px;padding:12px 14px;margin-bottom:16px;
+  background:var(--ct-panel-grey);}
+.loc-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.loc-required{font-size:9px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#791F1F;
+  background:var(--ct-red-tint);padding:2px 7px;border-radius:99px;}
+.loc-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;margin-top:8px;}
+.loc-key{color:var(--ct-text-muted);}
+.loc-val{font-weight:600;text-align:right;}
+.loc-note{font-size:10.5px;color:var(--ct-text-muted);line-height:1.5;margin-top:10px;}

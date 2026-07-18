@@ -629,6 +629,50 @@ const CT_DATA = {
         status: "notAvailable",
         note: "No UWEP/YLP status line appears in the Jinja City budget extract reviewed." }
     ]
+  },
+
+  // ---- NDP IV architecture ---------------------------------------------------
+  // The Fourth National Development Plan (2025/26–2029/30) organises all of
+  // Uganda's development effort into 4 clusters and 18 programmes (NPA, NDP IV,
+  // Table 3.3). Every district report itemizes a subset of these programmes;
+  // aliases map the names districts use onto the canonical NDP IV names.
+  ndp4: {
+    source: "Fourth National Development Plan (NDP IV) 2025/26-2029/30, NPA — Table 3.3",
+    clusters: [
+      { id: "production", name: "Production and Value Addition", icon: "🏭",
+        programmes: ["Agro-Industrialisation", "Sustainable Extractives Industry Development", "Tourism Development", "Manufacturing", "Private Sector Development"] },
+      { id: "social", name: "Social Development", icon: "🎓",
+        programmes: ["Human Capital Development", "Sustainable Urbanisation and Housing", "Regional Development"] },
+      { id: "enablers", name: "Enablers", icon: "⚡",
+        programmes: ["Integrated Transport Infrastructure and Services", "Sustainable Energy Development", "Digital Transformation", "Natural Resources, Environment, Climate Change, Land and Water Management", "Innovation, Technology Development and Transfer"] },
+      { id: "governance", name: "Governance", icon: "🏛️",
+        programmes: ["Legislature, Oversight and Representation", "Administration of Justice", "Development Plan Implementation", "Governance and Security", "Public Sector Transformation"] }
+    ],
+    aliases: {
+      "regionalbalanceddevelopment": "Regional Development",
+      "agroindustrialization": "Agro-Industrialisation"
+    }
+  },
+
+  // ---- Technocrats (accounting officers) --------------------------------------
+  // Real names from report signatures; part of the leadership network — leaders
+  // reach these officers for delivery-side questions (procurement, works, releases).
+  technocrats: {
+    "UG-KYG": [
+      { office: "Chief Administrative Officer (CAO)", name: "Mahabba Malik",
+        basis: "Accounting Officer — signed the Kayunga DLG Quarterly Performance Report, FY2025/26 Q2",
+        verified: true }
+    ],
+    "UG-JJD": [
+      { office: "Chief Administrative Officer (CAO)", name: "Nakamatte Lilian",
+        basis: "Accounting Officer — signed the Jinja District LG Performance Reports, FY2024/25 Q4 & FY2025/26 Q1",
+        verified: true }
+    ],
+    "UG-JJC": [
+      { office: "City Town Clerk", name: null,
+        basis: "The accounting officer is not named in the budget extract reviewed.",
+        verified: false }
+    ]
   }
 };
 
@@ -685,4 +729,21 @@ function ctMobilizationOf(geoId){ return CT_DATA.mobilization[ctDistrictIdOf(geo
 function ctFlagshipsOf(geoId){ return CT_DATA.flagships[ctDistrictIdOf(geoId)] || []; }
 function ctFlagship(geoId, fid){
   return ctFlagshipsOf(geoId).find(f => f.id === fid) || null;
+}
+
+// ---- NDP IV cluster helpers ---------------------------------------------------
+// Normalise a programme name so district report wording matches canonical NDP IV
+// wording ("Regional Balanced Development" == "Regional Development").
+function ctNormProg(s){
+  return (s || '').toLowerCase().replace(/[^a-z]/g, '').replace(/isation/g, 'ization');
+}
+// Which NDP IV cluster does a programme belong to? null if it isn't an NDP IV
+// programme line (e.g. a district's local-revenue or statutory line).
+function ctClusterOf(progName){
+  let n = ctNormProg(progName);
+  if (CT_DATA.ndp4.aliases[n]) n = ctNormProg(CT_DATA.ndp4.aliases[n]);
+  for (const c of CT_DATA.ndp4.clusters){
+    if (c.programmes.some(p => ctNormProg(p) === n)) return c;
+  }
+  return null;
 }

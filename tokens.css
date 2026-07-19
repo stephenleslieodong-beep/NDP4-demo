@@ -948,3 +948,114 @@ select.field{appearance:auto;cursor:pointer;color:var(--ct-text);}
   background:var(--ct-black);border-radius:9px;flex-shrink:0;}
 .cluster-chip-name{font-size:11px;font-weight:700;line-height:1.25;color:var(--ct-text);}
 .cluster-chip-stat{font-size:10px;color:var(--ct-text-muted);margin-top:2px;}
+
+
+/* ==========================================================================
+   SECTION 25 — CIVICTRACK V2 EXECUTIVE VISUAL LANGUAGE
+   Light backgrounds, strong hierarchy, one card style, minimal shadows,
+   calm spacing. Layer headers, snapshot charts, attention rows, timeline,
+   coordination, journey, ecosystem, knowledge centre.
+   ========================================================================== */
+
+/* --- Layer headers --- */
+.layer-head{display:flex;align-items:center;gap:11px;margin:22px 0 10px;}
+.layer-num{width:26px;height:26px;border-radius:50%;background:var(--ct-black);color:var(--ct-yellow);
+  font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.layer-title{font-size:15px;font-weight:800;letter-spacing:-0.01em;color:var(--ct-text);}
+.layer-sub{font-size:10.5px;color:var(--ct-text-muted);margin-top:1px;}
+
+/* --- Layer 1: Executive Snapshot --- */
+.exec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}
+.exec-chart{background:var(--ct-card);border:1px solid var(--ct-border);border-radius:14px;
+  padding:14px 8px 12px;text-align:center;cursor:pointer;box-shadow:0 1px 2px rgba(26,26,26,0.04);
+  transition:border-color var(--duration-fast) var(--ease-standard);}
+.exec-chart:hover{border-color:var(--ct-yellow);}
+.exec-chart-cap{font-size:9.5px;color:var(--ct-text-muted);line-height:1.45;margin-top:8px;}
+.exec-chart-cap strong{color:var(--ct-text);}
+.exec-big{font-size:34px;font-weight:800;line-height:1.1;color:var(--ct-text);padding:18px 0;}
+.exec-big.danger{color:var(--ct-red);}
+.exec-big.amber{color:#E8A100;}
+.ct-ring-val{font-size:17px;font-weight:800;fill:var(--ct-text);}
+.ct-ring-label{font-size:7.5px;font-weight:600;fill:var(--ct-text-muted);text-transform:uppercase;letter-spacing:0.06em;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.kpi-tile{background:var(--ct-card);border:1px solid var(--ct-border);border-radius:12px;
+  padding:10px 8px;text-align:center;cursor:pointer;transition:border-color var(--duration-fast) var(--ease-standard);}
+.kpi-tile:hover{border-color:var(--ct-yellow);}
+.kpi-val{font-size:15px;font-weight:800;color:var(--ct-text);line-height:1.2;}
+.kpi-val.demo-kpi{font-size:9.5px;letter-spacing:0.06em;color:var(--ct-text-muted);padding:4px 0;}
+.kpi-label{font-size:8.8px;color:var(--ct-text-muted);margin-top:3px;line-height:1.3;}
+
+/* --- Layer 3: attention inbox --- */
+.attn-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ct-border);cursor:pointer;}
+.attn-row:last-child{border-bottom:none;}
+.attn-icon{font-size:16px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  background:var(--ct-yellow-soft);border-radius:9px;flex-shrink:0;}
+.attn-text{font-size:12px;color:var(--ct-text);line-height:1.45;flex:1;}
+.attn-action{font-size:10.5px;font-weight:700;color:var(--ct-black);white-space:nowrap;}
+
+/* --- Layer 4: timeline --- */
+.tl-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--ct-border);}
+.tl-row:last-child{border-bottom:none;}
+.tl-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.tl-dot.real{background:var(--ct-green);}
+.tl-dot.demo{background:var(--ct-border);}
+.tl-text{font-size:12px;color:var(--ct-text);line-height:1.45;}
+.tl-date{font-size:10px;color:var(--ct-text-muted);margin-top:2px;}
+
+/* --- Layer 6: quick actions --- */
+.quick-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.quick-btn{border:1.5px solid var(--ct-border);background:var(--ct-card);border-radius:12px;
+  padding:12px 4px;font-size:10.5px;font-weight:700;color:var(--ct-text);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  transition:border-color var(--duration-fast) var(--ease-standard), transform 0.08s var(--ease-standard);}
+.quick-btn:hover{border-color:var(--ct-yellow);}
+.quick-btn:active{transform:scale(0.95);}
+.quick-icon{font-size:19px;}
+
+/* --- Coordination Centre --- */
+.coord-item{background:var(--ct-card);border:1px solid var(--ct-border);border-radius:14px;
+  padding:12px 14px;margin-bottom:10px;}
+.coord-head{display:flex;gap:10px;align-items:flex-start;}
+.coord-kind{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--ct-text-muted);}
+.coord-text{font-size:12.5px;color:var(--ct-text);line-height:1.5;margin-top:2px;}
+.coord-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.coord-chip{border:1.5px solid var(--ct-border);background:var(--ct-bg);border-radius:99px;
+  padding:5px 12px;font-size:10.5px;font-weight:700;color:var(--ct-text);cursor:pointer;
+  transition:background var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);}
+.coord-chip:active{background:var(--ct-black);color:var(--ct-yellow);}
+
+/* --- Project delivery journey (vertical timeline) --- */
+.journey{padding:6px 2px;}
+.j-step{display:flex;align-items:center;gap:12px;min-height:30px;}
+.j-marker{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;background:var(--ct-bg);border:2px solid var(--ct-border);color:var(--ct-text-muted);}
+.j-marker.done{background:var(--ct-green);border-color:var(--ct-green);color:#fff;}
+.j-marker.current{background:var(--ct-yellow);border-color:var(--ct-yellow);color:var(--ct-black);
+  box-shadow:0 0 0 4px rgba(252,220,4,0.25);}
+.j-marker.stuck{background:var(--ct-red);border-color:var(--ct-red);color:#fff;}
+.j-line{width:2px;height:16px;margin-left:16px;background:var(--ct-border);}
+.j-line.done{background:var(--ct-green);}
+.j-label{font-size:12.5px;font-weight:600;color:var(--ct-text);}
+.j-step .j-marker:not(.done):not(.current):not(.stuck) + .j-line, .j-step .j-label{color:var(--ct-text);}
+.j-note{font-size:11px;color:#791F1F;background:var(--ct-red-tint);border-radius:9px;padding:8px 10px;margin-top:8px;line-height:1.5;}
+
+/* --- Governance ecosystem stack --- */
+.eco-stack{margin-bottom:16px;}
+.eco-layer{display:flex;align-items:center;gap:12px;background:var(--ct-card);
+  border:1px solid var(--ct-border);border-radius:13px;padding:11px 14px;cursor:pointer;
+  transition:border-color var(--duration-fast) var(--ease-standard);}
+.eco-layer:hover{border-color:var(--ct-yellow);}
+.eco-icon{font-size:19px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  background:var(--ct-black);border-radius:11px;flex-shrink:0;}
+.eco-name{font-size:12.5px;font-weight:800;color:var(--ct-text);}
+.eco-who{font-size:10.5px;color:var(--ct-text-muted);margin-top:2px;}
+.eco-link{width:2px;height:10px;margin-left:32px;background:var(--ct-border);}
+
+/* --- Knowledge Centre --- */
+.know-section{animation:ct-fade-slide-up var(--duration-base) var(--ease-out) both;}
+
+/* --- Calm global shadows (one card style, minimal) --- */
+.card{box-shadow:0 1px 2px rgba(26,26,26,0.04) !important;}
+
+.j-label-here{color:var(--ct-text);}
+.j-label-todo{color:var(--ct-text-muted);font-weight:500;}

@@ -285,16 +285,12 @@ function ctTopbar(title, sub, roleKey){
 function ctBottomNav(roleKey){
   const h = (location.hash || '').split('?')[0];
   const tabs = [
-    { icon: '▦', label: 'Dashboard', href: CT_ROLES[roleKey].home, match: CT_ROLES[roleKey].home }
+    { icon: '🏠', label: 'Home', href: CT_ROLES[roleKey].home, match: CT_ROLES[roleKey].home },
+    { icon: '📁', label: 'Projects', href: '#/projects', match: '#/projects' },
+    { icon: '💬', label: 'Coordination', href: '#/coordination', match: '#/coordination' },
+    { icon: '👥', label: 'Network', href: '#/directory', match: '#/directory' },
+    { icon: '☰', label: 'More', action: 'ctOpenAccountSheet()', match: null }
   ];
-  if (roleKey === 'mp' || roleKey === 'lc5'){
-    tabs.push({ icon: '🏗️', label: 'Projects', href: '#/' + roleKey + '/projects', match: '#/' + roleKey + '/projects' });
-  } else {
-    tabs.push({ icon: '📣', label: 'Mobilize', href: '#/mobilize', match: '#/mobilize' });
-  }
-  tabs.push({ icon: '🧭', label: 'Programmes', href: '#/programmes', match: '#/programmes' });
-  tabs.push({ icon: '📋', label: 'Collect', href: '#/collect', match: '#/collect' });
-  tabs.push({ icon: '⋯', label: 'More', action: 'ctOpenAccountSheet()', match: null });
   return `<nav class="tabbar">
     ${tabs.map(t => {
       const active = t.match && h.startsWith(t.match);
@@ -333,6 +329,10 @@ function ctAccountSheet(roleKey){
             <div class="row-sub">${role.label}${area ? ' · ' + area : ''} · demo session</div>
           </div>
         </div>
+        <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/profile'">
+          <div class="row-title">🪪 My leadership profile</div><span class="chevron">›</span></div>
+        <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/knowledge'">
+          <div class="row-title">📚 Knowledge Centre</div><span class="chevron">›</span></div>
         <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/directory'">
           <div class="row-title">👥 Leadership network</div><span class="chevron">›</span></div>
         <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/accounts'">
@@ -460,3 +460,58 @@ function ctRender(){
 }
 window.addEventListener('hashchange', ctRender);
 window.addEventListener('DOMContentLoaded', () => { if (!location.hash) location.hash = '#/login'; ctRender(); });
+
+// ---------------------------------------------------------------------------
+// EXECUTIVE CHARTS — dependency-free inline SVG. Every chart answers a
+// decision question; nothing decorative.
+// ---------------------------------------------------------------------------
+// Progress ring: one number that matters, at a glance.
+function ctRing(pct, opts){
+  opts = opts || {};
+  const size = opts.size || 84, stroke = opts.stroke || 9;
+  const color = opts.color || 'var(--ct-yellow)';
+  const track = opts.track || 'var(--ct-border)';
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  const off = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="ct-ring">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${track}" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"
+      transform="rotate(-90 ${size/2} ${size/2})" style="transition:stroke-dashoffset 0.8s var(--ease-out);"/>
+    <text x="50%" y="47%" text-anchor="middle" dominant-baseline="middle" class="ct-ring-val">${pct}%</text>
+    <text x="50%" y="64%" text-anchor="middle" dominant-baseline="middle" class="ct-ring-label">${opts.label || ''}</text>
+  </svg>`;
+}
+// Donut: composition of a whole (e.g. programmes on pace vs behind).
+function ctDonut(segments, opts){
+  opts = opts || {};
+  const size = opts.size || 92, stroke = opts.stroke || 13;
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  let acc = 0;
+  const arcs = segments.map(s => {
+    const len = c * s.pct / 100;
+    const el = `<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}"
+      stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-c * acc / 100}"
+      transform="rotate(-90 ${size/2} ${size/2})"/>`;
+    acc += s.pct;
+    return el;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--ct-border)" stroke-width="${stroke}"/>
+    ${arcs}
+    <text x="50%" y="47%" text-anchor="middle" dominant-baseline="middle" class="ct-ring-val">${opts.center || ''}</text>
+    <text x="50%" y="64%" text-anchor="middle" dominant-baseline="middle" class="ct-ring-label">${opts.label || ''}</text>
+  </svg>`;
+}
+// Sparkline: trend without axes clutter.
+function ctSpark(values, opts){
+  opts = opts || {};
+  const w = opts.w || 96, h = opts.h || 30, color = opts.color || 'var(--ct-green)';
+  const min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+  const span = (max - min) || 1;
+  const pts = values.map((v, i) => (i * w / (values.length - 1)).toFixed(1) + ',' + (h - 3 - (v - min) * (h - 6) / span).toFixed(1)).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${w}" cy="${(h - 3 - (values[values.length-1] - min) * (h - 6) / span).toFixed(1)}" r="2.6" fill="${color}"/>
+  </svg>`;
+}

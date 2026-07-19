@@ -631,6 +631,48 @@ const CT_DATA = {
     ]
   },
 
+  // ---- Money economy & shared stewardship (FY2026/27 budget theme) -----------
+  // Leaders do NOT collect tax — they shape opinion: why citizens and traders
+  // should join the money economy (TIN, business registration, local revenue)
+  // and why wetlands/forests must be preserved. The cross-cutting institutions
+  // below are who leaders PLUG INTO. National figures from the FY2026/27
+  // Budget Speech (11 June 2026); per-district local revenue stays in each
+  // district's own reviewed figures (localRevenuePct), never invented.
+  moneyEconomy: {
+    theme: "Full Monetisation of Uganda's Economy through Commercial Agriculture, Industrialisation, Expanding and Broadening Services, Digital Transformation and Market Access",
+    themeFY: "FY2026/27",
+    source: "Budget Speech FY2026/27 (MoFPED), 11 June 2026; MoFPED/press budget briefs",
+    national: {
+      budget: "UGX 84.39 trillion",
+      domesticRevenue: "UGX 45.96 trillion (tax UGX 40.16tn · non-tax UGX 4.02tn · petroleum UGX 1.44tn)",
+      localGovRevenue: "UGX 339.8 billion",
+      wealthCreation: "PDM UGX 1.059 trillion · Emyooga UGX 100 billion · GROW UGX 231.3 billion (women enterprises)",
+      environment: "UGX 494.08 billion for environmental protection — forest reserves & wetlands, riverbank/lakeshore demarcation, early-warning systems",
+      subsistence: "~33% of households remain in the subsistence economy — the theme targets lifting ~15 million people into the money economy"
+    },
+    // The three states a trader can be in — what leaders' opinion-shaping moves
+    // people along. Plain-language, sourced from URSB registration practice.
+    forms: [
+      { form: "Informal / subsistence", note: "No TIN, no registration — outside the money economy. The budget theme's target group." },
+      { form: "Sole proprietorship (registered business name)", note: "Registered with URSB; owner and business are one legal person; a URA TIN follows." },
+      { form: "Single-member company (SMC)", note: "One shareholder/director registered at URSB — limited liability, separate legal person; unlocks credit and formal contracts." }
+    ],
+    institutions: [
+      { id: "ura", name: "Uganda Revenue Authority (URA)", icon: "💳",
+        role: "TIN registration, tax education & taxpayer services — the doorway into the formal money economy for every trader.",
+        plugIn: "Leaders don't collect tax. They open the door: invite URA's tax-education team to barazas, encourage TIN uptake, and connect trading centres to URA taxpayer outreach." },
+      { id: "ursb", name: "Uganda Registration Services Bureau (URSB)", icon: "📑",
+        role: "Business formalisation — registering sole proprietorships (business names) and single-member companies, plus land & civil registration.",
+        plugIn: "Leaders shape opinion on why formalising matters: PDM follow-on finance, bank credit, and government contracts all require registration." },
+      { id: "lg-revenue", name: "Local councils & LG own revenue", icon: "🏪",
+        role: "Trading licences, market dues and local service tax — the Local Government's own money for local services.",
+        plugIn: "LC1/LC2/LC3 legitimise local revenue by showing what it funds (roads, markets, water points); LC5 accounts for it in council." },
+      { id: "nema-nfa", name: "NEMA & National Forestry Authority", icon: "🌿",
+        role: "Wetland and forest protection — backed by UGX 494.08bn nationally in FY2026/27 for environmental protection.",
+        plugIn: "Leaders shape opinion against encroachment, host restoration barazas, and report encroachment with location through field collection." }
+    ]
+  },
+
   // ---- NDP IV architecture ---------------------------------------------------
   // The Fourth National Development Plan (2025/26–2029/30) organises all of
   // Uganda's development effort into 4 clusters and 18 programmes (NPA, NDP IV,
@@ -657,6 +699,46 @@ const CT_DATA = {
   // ---- Technocrats (accounting officers) --------------------------------------
   // Real names from report signatures; part of the leadership network — leaders
   // reach these officers for delivery-side questions (procurement, works, releases).
+  // ---- Grant & fund streams -------------------------------------------------
+  // Named cross-cutting funding streams mentioned in the reviewed reports'
+  // underperformance causes — structured like flagships, keyed by the same
+  // geoId. Statuses are taken ONLY from what the reports already state;
+  // anything unsaid is notAvailable, never guessed.
+  grantStreams: {
+    "UG-KYG": [
+      { name: "Uganda Road Fund (URF)", status: "notAvailable",
+        basis: "The Kayunga Q2 FY2025/26 report reviewed does not name URF in its underperformance causes." },
+      { name: "National Oil Seed Project", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Kayunga report." },
+      { name: "UNEB grant", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Kayunga report." },
+      { name: "Donor funds — GAVI, UNICEF, WHO", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Kayunga report." }
+    ],
+    "UG-JJD": [
+      { name: "Uganda Road Fund (URF)", status: "notreleased",
+        basis: "Q1 FY2025/26: 'budget cuts of URF' cited as an underperformance cause; the Buwolero–Kitanaba road carries 'Uganda Road Fund non-release' as its contributing cause and stayed stalled across two consecutive reports." },
+      { name: "National Oil Seed Project", status: "notreleased",
+        basis: "Q1 FY2025/26: named among grants that did not release in the district's underperformance cause." },
+      { name: "UNEB grant", status: "notreleased",
+        basis: "Q1 FY2025/26: named among grants that did not release in the district's underperformance cause." },
+      { name: "UWEP & YLP grants", status: "notreleased",
+        basis: "Q1 FY2025/26: named among grants that did not release in the district's underperformance cause." },
+      { name: "Donor funds — GAVI, UNICEF, WHO", status: "notreleased",
+        basis: "Q1 FY2025/26: 'no funds from donors GAVI, UNICEF, WHO that quarter'." }
+    ],
+    "UG-JJC": [
+      { name: "Uganda Road Fund (URF)", status: "notAvailable",
+        basis: "Jinja City's reviewed document is an approved budget — it does not report releases." },
+      { name: "National Oil Seed Project", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Jinja City budget extract." },
+      { name: "UNEB grant", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Jinja City budget extract." },
+      { name: "Donor funds — GAVI, UNICEF, WHO", status: "notAvailable",
+        basis: "Not mentioned in the reviewed Jinja City budget extract." }
+    ]
+  },
+
   technocrats: {
     "UG-KYG": [
       { office: "Chief Administrative Officer (CAO)", name: "Mahabba Malik",
@@ -746,4 +828,37 @@ function ctClusterOf(progName){
     if (c.programmes.some(p => ctNormProg(p) === n)) return c;
   }
   return null;
+}
+
+// ---- Grant streams for any geo id (same key discipline as everything else) --
+function ctGrantStreamsOf(geoId){
+  return (CT_DATA.grantStreams || {})[ctDistrictIdOf(geoId)] || [];
+}
+
+// ---- Project → responsible office attribution --------------------------------
+// Structural inference from the project's existing sector field onto standard
+// Uganda Local Government department naming — not new invented data.
+function ctOfficeOf(p){
+  const map = {
+    'health': 'District Health Office',
+    'education': 'District Education Office',
+    'roads': "District Engineer's Office / Works Department",
+    'sanitation': 'District Health Office (Environmental Health)',
+    'water': 'District Water Office',
+    'public infrastructure': "District Engineer's Office / Works Department",
+    'private sector development': 'District Commercial Office'
+  };
+  return map[(p.sector || '').toLowerCase()] || "CAO's Office (responsible department not itemized in the reviewed report)";
+}
+// DEMO-flagged release-by-office placeholder: the reviewed reports do not
+// itemize how much of a project's budget reached the responsible office.
+// For performance-report districts the district-wide release % is the only
+// honest reference point available — shown as an expectation, not a fact.
+function ctOfficeReleaseNote(dist, p){
+  const office = ctOfficeOf(p);
+  if (dist && dist.dataKind === 'performance' && dist.budget.expenditurePct != null){
+    return '~' + dist.budget.expenditurePct + '% of this project\'s budget expected to have reached ' + office +
+      ' (the district-wide release rate) — release-by-office breakdown not itemized in the reviewed report; confirm with that office directly.';
+  }
+  return 'Release status to ' + office + ' not yet reported — the reviewed document is a budget, not a performance report; confirm with that office directly.';
 }

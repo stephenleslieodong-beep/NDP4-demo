@@ -260,23 +260,98 @@ function ctProgrammeTile(prog, opts){
 function ctTopbar(title, sub, roleKey){
   const role = CT_ROLES[roleKey];
   const s = ctGetSession() || {};
-  const geoChip = s.geoId
-    ? `<a href="#/accounts" class="geo-chip" title="Switch demo account / area">📍 ${ctGeoName(s.constituencyId || s.subCountyId || s.wardId || s.cellId || s.geoId)}</a>`
-    : '';
-  return `
+  const initials = (s.label || role.label).split(/\s+/).filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join('');
+  const top = `
     <div class="topbar">
-      <button class="theme-toggle nav-arrow-btn" onclick="history.back()" style="position:static;" title="Back">←</button>
-      <button class="theme-toggle nav-arrow-btn" onclick="history.forward()" style="position:static;margin-right:4px;" title="Forward">→</button>
+      <button class="theme-toggle nav-arrow-btn" onclick="history.back()" style="position:static;" title="Back">‹</button>
       ${ctBrandLogos('sm')}
       <div style="flex:1;min-width:0;">
         <div class="topbar-title">${title}</div>
         <div class="topbar-sub">${sub}</div>
       </div>
-      ${geoChip}
-      <span class="badge ${role.badgeClass}">${role.badge}</span>
-      <button class="theme-toggle" onclick="ctToggleTheme()" style="position:static;margin-left:8px;" title="Toggle dark mode">🌓</button>
-      <button class="theme-toggle" onclick="ctLogout()" style="position:static;" title="Log out">⎋</button>
+      <button class="avatar-btn" onclick="ctOpenAccountSheet()" title="Account">
+        <span class="avatar-initials">${initials}</span>
+        <span class="badge ${role.badgeClass} avatar-badge">${role.badge}</span>
+      </button>
     </div>`;
+  return top + ctBottomNav(roleKey) + ctFAB(roleKey) + ctAccountSheet(roleKey);
+}
+
+// ---------------------------------------------------------------------------
+// BOTTOM TAB BAR — persistent on all authenticated screens (login/accounts
+// never call ctTopbar, so they stay clean). 5 destinations; the middle slot
+// is role-specific (Projects for MP/LC5, Mobilize for LC3/LC2/LC1).
+// ---------------------------------------------------------------------------
+function ctBottomNav(roleKey){
+  const h = (location.hash || '').split('?')[0];
+  const tabs = [
+    { icon: '▦', label: 'Dashboard', href: CT_ROLES[roleKey].home, match: CT_ROLES[roleKey].home }
+  ];
+  if (roleKey === 'mp' || roleKey === 'lc5'){
+    tabs.push({ icon: '🏗️', label: 'Projects', href: '#/' + roleKey + '/projects', match: '#/' + roleKey + '/projects' });
+  } else {
+    tabs.push({ icon: '📣', label: 'Mobilize', href: '#/mobilize', match: '#/mobilize' });
+  }
+  tabs.push({ icon: '🧭', label: 'Programmes', href: '#/programmes', match: '#/programmes' });
+  tabs.push({ icon: '📋', label: 'Collect', href: '#/collect', match: '#/collect' });
+  tabs.push({ icon: '⋯', label: 'More', action: 'ctOpenAccountSheet()', match: null });
+  return `<nav class="tabbar">
+    ${tabs.map(t => {
+      const active = t.match && h.startsWith(t.match);
+      const inner = `<span class="tab-icon">${t.icon}</span><span class="tab-label">${t.label}</span>`;
+      return t.action
+        ? `<button class="tab-item" onclick="${t.action}">${inner}</button>`
+        : `<a class="tab-item${active ? ' active' : ''}" href="${t.href}">${inner}</a>`;
+    }).join('')}
+  </nav>`;
+}
+
+// ---------------------------------------------------------------------------
+// FAB — jumps into the act-on-it flow: opens the compass action sheet, which
+// leads with the top data-driven recommendation and offers Collect/Mobilize.
+// ---------------------------------------------------------------------------
+function ctFAB(roleKey){
+  return `<button class="fab" onclick="ctCompassSheet('${roleKey}')" title="Recommended next actions">🧭</button>`;
+}
+
+// ---------------------------------------------------------------------------
+// ACCOUNT SHEET — slide-out from the avatar: identity, switch demo account,
+// theme toggle, logout. Keeps the topbar slim.
+// ---------------------------------------------------------------------------
+function ctAccountSheet(roleKey){
+  const s = ctGetSession() || {};
+  const role = CT_ROLES[roleKey];
+  const area = s.geoId ? ctGeoName(s.constituencyId || s.subCountyId || s.wardId || s.cellId || s.geoId) : '';
+  return `
+    <div class="sheet-overlay" id="ctAccountSheet" onclick="if(event.target===this)ctCloseAccountSheet()">
+      <div class="acct-sheet">
+        <div class="acct-sheet-grab"></div>
+        <div class="acct-id">
+          <div class="acct-id-avatar">${(s.label || role.label).split(/\s+/).filter(w => /^[A-Z]/.test(w)).map(w => w[0]).slice(0, 2).join('')}</div>
+          <div>
+            <div class="row-title">${s.label || role.label}</div>
+            <div class="row-sub">${role.label}${area ? ' · ' + area : ''} · demo session</div>
+          </div>
+        </div>
+        <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/directory'">
+          <div class="row-title">👥 Leadership network</div><span class="chevron">›</span></div>
+        <div class="row" style="cursor:pointer;" onclick="ctCloseAccountSheet();location.hash='#/accounts'">
+          <div class="row-title">🔄 Switch demo account</div><span class="chevron">›</span></div>
+        <div class="row" style="cursor:pointer;" onclick="ctToggleTheme()">
+          <div class="row-title">🌓 Toggle dark / light mode</div><span class="chevron">›</span></div>
+        <div class="row" style="cursor:pointer;" onclick="ctLogout()">
+          <div class="row-title" style="color:var(--ct-red);">⎋ Log out</div><span class="chevron">›</span></div>
+        <div class="footer-note" style="margin-top:10px;">Demo Mode — sessions are simulated; no real credentials or messages exist.</div>
+      </div>
+    </div>`;
+}
+function ctOpenAccountSheet(){
+  const el = document.getElementById('ctAccountSheet');
+  if (el) el.classList.add('open');
+}
+function ctCloseAccountSheet(){
+  const el = document.getElementById('ctAccountSheet');
+  if (el) el.classList.remove('open');
 }
 
 function ctDrillTabs(tabs, activeIndex){

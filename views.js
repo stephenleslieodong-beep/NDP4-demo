@@ -1112,7 +1112,7 @@ ctRoute('#/lc5/dashboard', function(){
           <strong>What this shows:</strong> Kayunga is running roughly on pace overall, but its Public Sector Transformation Programme is badly behind. Jinja District is close to on-pace overall for Q1, but its Integrated Transport Infrastructure (7%) and Sustainable Urbanisation &amp; Housing (0%) Programmes are the ones to watch.
         </div>
       </div>`;
-  return ctHomeView('lc5', 'District Council Dashboard', ctGeoDistrict(mine).name + ' · the whole Local Government, pace-adjusted', { ndpExtra: compareSection });
+  return ctHomeView('lc5', 'District Council Dashboard', ctGeoDistrict(mine).name + ' · the whole Local Government, pace-adjusted', { districtExtra: compareSection });
 });
 
 // ---------------------------------------------------------------------------
@@ -1279,7 +1279,7 @@ ctRoute('#/lc3/dashboard', function(){
             <div class="cta">View project →</div>
           </div>
         </a>`;
-    return ctHomeView('lc3', subName, 'Jinja City, Eastern Region', { attnExtra: monitoringCard });
+    return ctHomeView('lc3', subName, 'Jinja City, Eastern Region', { localExtra: monitoringCard });
   }
 
   // Rural districts: sub-county scoped project view
@@ -1292,7 +1292,7 @@ ctRoute('#/lc3/dashboard', function(){
         </div>`
       : ctDemoLevelPanel('Projects in ' + subName,
           'No capital projects in ' + subName + ' were itemized in the reviewed ' + g.name + ' performance report (' + dist.quarter + '). This panel would list them once the district\'s project register is connected.');
-  return ctHomeView('lc3', subName, g.name + ', ' + g.region, { attnExtra: projectsCard });
+  return ctHomeView('lc3', subName, g.name + ', ' + g.region, { localExtra: projectsCard });
 });
 
 // ---------------------------------------------------------------------------
@@ -1406,7 +1406,7 @@ ctRoute('#/lc2/dashboard', function(){
           <div class="row" style="cursor:pointer;" onclick="ctDemoModal('Church leaders', 'Per-group mobilization workflows are not yet built in this prototype.')"><div class="row-title">Church leaders</div><span class="chevron">›</span></div>
         </div>
         <a href="#/lc2/mobilize" class="btn btn-yellow" style="text-decoration:none;display:block;text-align:center;">Open mobilization workspace →</a>`;
-    return ctHomeView('lc2', wardName, 'Jinja City, Eastern Region', { attnExtra: ctCommunityScorecard('LC2') + wardExtra });
+    return ctHomeView('lc2', wardName, 'Jinja City, Eastern Region', { localExtra: wardExtra });
   }
 
   // Any other ward, or a district whose parish names aren't itemized:
@@ -1429,7 +1429,7 @@ ctRoute('#/lc2/dashboard', function(){
           <div class="isub">PDM figures not in the reviewed reports for ${g.shortName}</div>
           <div class="cta">View status →</div>
         </div>`);
-  return ctHomeView('lc2', wardName, g.name + ', ' + g.region, { attnExtra: ctCommunityScorecard('LC2') + parishExtra });
+  return ctHomeView('lc2', wardName, g.name + ', ' + g.region, { localExtra: parishExtra });
 });
 
 // ---------------------------------------------------------------------------
@@ -1498,7 +1498,7 @@ ctRoute('#/lc1/dashboard', function(){
           <p style="font-size:11.5px;color:var(--ct-text-secondary);">Funded — construction status not yet confirmed on the ground. <strong>You are the verification.</strong></p>
         </div>
         <a href="#/lc1/report" class="btn btn-yellow btn-large" style="text-decoration:none;display:block;text-align:center;">Report what I see</a>`;
-    return ctHomeView('lc1', cellName, 'Jinja North Ward, Jinja City', { attnExtra: ctCommunityScorecard('LC1') + cellExtra });
+    return ctHomeView('lc1', cellName, 'Jinja North Ward, Jinja City', { localExtra: cellExtra });
   }
 
   const villageExtra = ctDemoLevelPanel('Project near you — ' + cellName,
@@ -1511,7 +1511,7 @@ ctRoute('#/lc1/dashboard', function(){
         <div class="isub">drill up to ${g.name}'s full programme &amp; project breakdown</div>
         <div class="cta">Programme breakdown →</div>
       </div>`;
-  return ctHomeView('lc1', cellName, g.name + ', ' + g.region, { attnExtra: ctCommunityScorecard('LC1') + villageExtra });
+  return ctHomeView('lc1', cellName, g.name + ', ' + g.region, { localExtra: villageExtra });
 });
 
 // ---------------------------------------------------------------------------
@@ -1650,8 +1650,10 @@ ctRoute('#/collect', function(){
 
         <p style="font-size:13px;font-weight:500;margin-bottom:8px;">What is the status?</p>
         <div class="choice-row">
-          ${active.statuses.map((st, i) => `<div class="choice-btn${i === 0 ? ' selected' : ''}" onclick="document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${st}</div>`).join('')}
+          ${active.statuses.map((st, i) => `<div class="choice-btn${i === 0 ? ' selected' : ''}" data-sq="1" onclick="document.querySelectorAll('[data-sq=&quot;1&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected');const gd=document.getElementById('ctGuided');if(gd)gd.style.display='block'">${st}</div>`).join('')}
         </div>
+
+        ${ctGuidedQuestions(active.id)}
 
         <p style="font-size:13px;font-weight:500;margin-bottom:8px;">What did you see?</p>
         <textarea class="field" id="ctCollectNote" style="height:70px;" placeholder="${active.prompt}"></textarea>
@@ -1720,11 +1722,11 @@ function ctClusterProgrammeRow(dist, distId, progName, scope){
     if (hit){
       const pct = hit.pctOfRevised != null ? hit.pctOfRevised : hit.pct;
       const cls = pct >= dist.paceTarget ? 'good' : (pct < 20 ? 'danger' : 'amber');
-      return `<div class="row" style="cursor:pointer;${dimStyle}" onclick="ctProgrammeBreakdownModal('${distId}','${hit.name}')">
+      return `<div class="row" style="cursor:pointer;${dimStyle}" onclick="ctProgrammeWorkspace('${distId}','${hit.name}')">
         <div class="row-title" style="max-width:66%;font-weight:500;">${progName}${dimTag}</div>
         <div class="row-sub" style="text-align:right;"><span class="subvalue ${cls}" style="font-weight:700;">${pct}%</span></div></div>`;
     }
-    return `<div class="row" style="cursor:pointer;opacity:0.75;${dimStyle}" onclick="ctDemoModal('${progName}', 'This NDP IV programme is not itemized in the ${dist.quarter} report reviewed for this Local Government. It may be delivered through national votes or not yet funded locally — no figures are invented here.')">
+    return `<div class="row" style="cursor:pointer;opacity:0.75;${dimStyle}" onclick="ctProgrammeWorkspace('${distId}','${progName}')">
       <div class="row-title" style="max-width:66%;font-weight:400;color:var(--ct-text-muted);">${progName}${dimTag}</div>
       <div class="row-sub" style="text-align:right;font-size:10.5px;">not itemized ›</div></div>`;
   }
@@ -1732,11 +1734,11 @@ function ctClusterProgrammeRow(dist, distId, progName, scope){
   const mine = (dist.projects || []).filter(p => ctNormProg(ctCityProg(p) || '') === ctNormProg(progName));
   if (mine.length){
     const sum = mine.reduce((a, p) => a + (p.amount || 0), 0);
-    return `<div class="row" style="cursor:pointer;${dimStyle}" onclick="ctProgrammeBreakdownModal('${distId}')">
+    return `<div class="row" style="cursor:pointer;${dimStyle}" onclick="ctProgrammeWorkspace('${distId}','${progName}')">
       <div class="row-title" style="max-width:66%;font-weight:500;">${progName}${dimTag}</div>
       <div class="row-sub" style="text-align:right;">${mine.length} project${mine.length > 1 ? 's' : ''} · ${ctFormatUGX(sum)}</div></div>`;
   }
-  return `<div class="row" style="cursor:pointer;opacity:0.75;${dimStyle}" onclick="ctDemoModal('${progName}', 'No FY2025/26 funded project under this programme appears in the budget extract reviewed for Jinja City — no figures are invented here.')">
+  return `<div class="row" style="cursor:pointer;opacity:0.75;${dimStyle}" onclick="ctProgrammeWorkspace('${distId}','${progName}')">
     <div class="row-title" style="max-width:66%;font-weight:400;color:var(--ct-text-muted);">${progName}${dimTag}</div>
     <div class="row-sub" style="text-align:right;font-size:10.5px;">not funded ›</div></div>`;
 }
@@ -2248,16 +2250,17 @@ function ctInstitutionModal(i){
   if (!t) return;
   const forms = CT_DATA.moneyEconomy.forms.map(f =>
     `<div class="row"><div><div class="row-title" style="font-size:12px;">${f.form}</div><div class="row-sub">${f.note}</div></div></div>`).join('');
-  ctOpenModal(`
-    <h3>${t.icon} ${t.name}</h3>
-    <p style="font-size:12px;color:var(--ct-text-secondary);line-height:1.6;">${t.role}</p>
-    <p style="font-size:12px;line-height:1.6;"><strong>How a leader plugs in:</strong> ${t.plugIn}</p>
-    ${t.id === 'ursb' || t.id === 'ura' ? '<div class="card-title" style="margin-top:8px;">The three states a trader can be in</div><div class="card" style="margin:0;box-shadow:none;padding:0;">' + forms + '</div>' : ''}
-    <div class="footer-note">Contact is simulated in this demo — in production this opens the institution's district focal point.</div>
-    <div class="action-chip-row" style="margin-top:12px;">
-      <button class="action-chip" onclick="ctCloseModal();location.hash='#/mobilize?type=${t.id === 'nema-nfa' ? 'wetlands' : (t.id === 'ursb' ? 'formalize' : 'money')}'"><span class="action-icon">📣</span>Schedule an outreach (demo)</button>
-      <button class="action-chip" onclick="ctDemoModeToast('Contact ${t.name.split(' — ')[0]}')"><span class="action-icon">📞</span>Contact focal point (demo)</button>
-    </div>`, { wide: true });
+  ctOpenWorkspace(t.name, 'Cross-cutting institution · DEMO contact in this prototype', [
+    { icon: '🏛️', title: 'What it does', html: `<div style="font-size:12px;color:var(--ct-text-secondary);line-height:1.6;">${t.role}</div>` },
+    { icon: '🧠', title: 'How a leader plugs in', html: `<div style="font-size:12px;line-height:1.6;">${t.plugIn}</div>` },
+    ...(t.id === 'ursb' || t.id === 'ura' ? [{ icon: '🪪', title: 'The three states a trader can be in', html: `<div class="card" style="margin:0;box-shadow:none;padding:0;">${forms}</div>` }] : []),
+    { icon: '🕘', title: 'Recent activity', html: `<div style="font-size:11.5px;color:var(--ct-text-muted);">No outreach events recorded in this demo — scheduled outreaches would appear here.</div>` },
+    { icon: '🎯', title: 'Recommended actions', html: `
+      <div class="action-chip-row">
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/mobilize?type=${t.id === 'nema-nfa' ? 'wetlands' : (t.id === 'ursb' ? 'formalize' : 'money')}'"><span class="action-icon">📣</span>Schedule an outreach (demo)</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Contact ${t.name.split(' — ')[0]}')"><span class="action-icon">📞</span>Contact focal point (demo)</button>
+      </div>` }
+  ]);
 }
 function ctPlugInCard(){
   const dist = ctSessDistrict();
@@ -2437,35 +2440,94 @@ function ctQuickActions(roleKey){
     <button class="quick-btn" onclick="location.hash='${a.href}'"><span class="quick-icon">${a.icon}</span>${a.label}</button>`).join('')}</div>`;
 }
 
-// ---- The assembled Home -------------------------------------------------------
+// ---- The assembled Home — fixed three-level geographic narrative -------------
+// Level 1 My Jurisdiction (primary focus) → Level 2 District Context →
+// Level 3 National Executive Summary. Awareness → understanding → action.
+function ctDistrictContext(roleKey, extras){
+  const s = ctSess();
+  const g = ctSessGeo();
+  const dist = ctSessDistrict();
+  const mine = (extras && extras.districtExtra) || '';
+  const scoped = s.constituencyId || s.subCountyId || s.wardId || s.cellId;
+  const local = scoped
+    ? dist.projects.filter(p => (s.constituencyId && (p.constituencyId === s.constituencyId || !p.constituencyId)) || (s.subCountyId && p.subCountyId === s.subCountyId) || (s.wardId && (p.wardId === s.wardId || p.subCountyId === s.wardId)) || (s.cellId && (p.cellId === s.cellId || p.wardId === s.wardId)))
+    : dist.projects;
+  const compareCard = scoped ? `
+    <div class="card">
+      <div class="card-title">Your area vs the district</div>
+      <div class="row"><div class="row-title">Projects touching your jurisdiction</div><div class="row-sub" style="text-align:right;">${local.length} of ${dist.projects.length} tracked in ${g.shortName}</div></div>
+      <div class="row"><div class="row-title">Joint action needed</div><div class="row-sub" style="text-align:right;max-width:60%;">${dist.projects.some(p => p.stageStatus === 'stalled') ? 'stalled projects need the CAO &amp; funding channels, not just local follow-up' : 'field verification, shared across the LC chain'}</div></div>
+      <div class="row-sub" style="font-size:10.5px;margin-top:6px;">Comparative ranking beyond this is not computed — the reviewed documents do not rank sub-areas, and CivicTrack never invents standings.</div>
+    </div>` : '';
+  return `
+    ${mine}
+    ${compareCard}
+    ${ctClusterStrip(roleKey)}
+    ${ctFlagshipParityCard()}
+    ${(roleKey === 'mp' || roleKey === 'lc5') ? ctGrantStreamCard() : ''}`;
+}
+function ctNationalSummary(roleKey){
+  const dist = ctSessDistrict();
+  const g = ctSessGeo();
+  const me = CT_DATA.moneyEconomy;
+  const reported = dist.dataKind === 'performance' ? dist.programmes.length : new Set(dist.projects.map(p => ctCityProg(p)).filter(Boolean)).size;
+  return `
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);">
+      <div class="kpi-tile" onclick="location.hash='#/knowledge'"><div class="kpi-val">84.39tn</div><div class="kpi-label">UGX national budget FY2026/27</div></div>
+      <div class="kpi-tile" onclick="location.hash='#/knowledge'"><div class="kpi-val">45.96tn</div><div class="kpi-label">UGX domestic revenue target</div></div>
+      <div class="kpi-tile" onclick="location.hash='#/mobilize?type=money'"><div class="kpi-val">~33%</div><div class="kpi-label">households still subsistence — the monetisation mission</div></div>
+      <div class="kpi-tile" onclick="location.hash='#/collect?aspect=environment'"><div class="kpi-val">494bn</div><div class="kpi-label">UGX for wetlands, forests &amp; environment</div></div>
+    </div>
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">How ${g.shortName} feeds the national picture</div>
+      <div style="font-size:11.5px;color:var(--ct-text-secondary);line-height:1.65;">
+        ${g.name} reports on <strong>${reported} of the 18 NDP IV programmes</strong> — every local release, stalled project unblocked, business formalized and wetland preserved compounds into the 4 national clusters. ${me.national.wealthCreation}.
+      </div>
+      <a href="#/programmes" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:var(--ct-black);text-decoration:none;">Open the 4 clusters &amp; 18 programmes →</a>
+    </div>`;
+}
 function ctHomeView(roleKey, title, sub, extras){
+  extras = extras || {};
+  const s = ctSess();
+  const g = ctSessGeo();
+  const dist = ctSessDistrict();
+  const distId = ctDistrictIdOf(s.geoId);
+  const areaName = ctGeoName(s.constituencyId || s.subCountyId || s.wardId || s.cellId || s.geoId);
+  const insights = ctInsightsFor({ type: 'district', distId });
+  const stalled = dist.projects.filter(p => p.stageStatus === 'stalled').length;
+  const behind = dist.dataKind === 'performance'
+    ? dist.programmes.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < dist.paceTarget).length : 0;
   return ctTopbar(title, sub, roleKey) + `
     <div class="content">
-      ${ctLayerHead(1, 'Executive Snapshot', 'Where your jurisdiction stands — ten seconds')}
+      <div class="geo-banner lvl1"><span class="geo-tag">Level 1 · My jurisdiction</span><span class="geo-name">${areaName}</span></div>
       ${ctSnapshotLayer(roleKey)}
-
-      ${ctLayerHead(2, 'National Development Compass', 'How local action feeds Uganda\u2019s NDP IV')}
+      <div class="alert-row">
+        ${stalled ? `<span class="alert-chip danger" onclick="location.hash='#/projects'">⚠ ${stalled} stalled project${stalled > 1 ? 's' : ''}</span>` : ''}
+        ${behind ? `<span class="alert-chip amber" onclick="location.hash='#/programmes'">📉 ${behind} programme${behind > 1 ? 's' : ''} behind pace</span>` : ''}
+        <span class="alert-chip" onclick="location.hash='#/verify'">✅ evidence &amp; verification pending</span>
+      </div>
       ${ctRolePanel(roleKey)}
-      ${ctClusterStrip(roleKey)}
-      ${ctFlagshipParityCard()}
-      ${(roleKey === 'mp' || roleKey === 'lc5') ? ctGrantStreamCard() : ''}
-      ${extras && extras.ndpExtra ? extras.ndpExtra : ''}
-
-      ${ctLayerHead(3, 'Executive Attention', 'What requires your action now')}
-      ${ctCompassPanel(roleKey)}
-      ${ctAttentionInbox(roleKey)}
-      ${extras && extras.attnExtra ? extras.attnExtra : ''}
-
-      ${ctLayerHead(4, 'Executive Timeline', 'Operational history — real anchors, simulated entries marked')}
-      ${ctTimelineLayer()}
-
-      ${ctLayerHead(5, 'Coordination Centre', 'One unified panel — the full workspace is one tap away')}
-      ${ctCoordPreview()}
-
-      ${ctLayerHead(6, 'Quick Actions', 'Highest-frequency actions only')}
+      <div class="card">
+        <div class="card-title">What CivicTrack observes <span class="dim-chip" style="font-weight:600;">advisory — your judgement leads</span></div>
+        ${ctInsightCards(insights.slice(0, 3))}
+      </div>
+      ${(roleKey === 'lc1' || roleKey === 'lc2') ? ctCommunityScorecard(roleKey.toUpperCase()) : ''}
+      ${extras.localExtra || ''}
       ${ctQuickActions(roleKey)}
 
-      <div class="footer-note">Every figure traces to the reviewed ${ctSessGeo().name} documents; simulated signals always carry the DEMO chip. Structure: NDP IV (NPA), Table 3.3.</div>
+      <div class="geo-banner lvl2"><span class="geo-tag">Level 2 · District context</span><span class="geo-name">${g.name}</span></div>
+      ${ctDistrictContext(roleKey, extras)}
+
+      <div class="geo-banner lvl3"><span class="geo-tag">Level 3 · National executive summary</span><span class="geo-name">Uganda · NDP IV 2025/26–2029/30</span></div>
+      ${ctNationalSummary(roleKey)}
+
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">💬 Coordination</div>
+        <div class="row" style="cursor:pointer;" onclick="location.hash='#/coordination'">
+          <div class="row-sub">Urgent issues, verification requests, institution communications — one unified workspace.</div>
+          <span class="chevron">›</span></div>
+      </div>
+      <div class="footer-note">Every figure traces to the reviewed ${g.name} documents; simulated signals always carry the DEMO chip. Structure: NDP IV (NPA), Table 3.3.</div>
     </div>`;
 }
 
@@ -2532,7 +2594,7 @@ ctRoute('#/projects', function(){
       <div class="screen-sub">Every project is a journey from budget to community validation${scoped ? ' — your area\u2019s projects are listed first, district-wide context follows' : ''}. Tap any project for its full timeline.</div>
       <div class="card" style="padding:0;">
         ${mineFirst.map((p, i) => `
-          <div class="row" style="cursor:pointer;" onclick="ctProjectJourneyModal(${i})">
+          <div class="row" style="cursor:pointer;" onclick="ctProjectWorkspace(${i})">
             <div style="min-width:0;"><div class="row-title">${p.name}</div>
             <div class="row-sub">${p.sector || ''} · ${p.location || ''}${p.amount ? ' · ' + ctFormatUGX(p.amount) : ''}</div>
             <span class="office-chip">${ctOfficeOf(p)}</span></div>
@@ -2615,7 +2677,11 @@ function ctVerifyChain(){
 function ctVerificationLog(){
   const log = JSON.parse(sessionStorage.getItem('ct_verifications') || '[]');
   if (!log.length) return `<div style="font-size:11.5px;color:var(--ct-text-muted);">No verifications recorded yet this session — the first one you record appears here as the audit trail.</div>`;
-  return log.map(e => `
+  return log.map(e => e.request ? `
+    <div class="tl-row"><div class="tl-dot demo"></div>
+      <div style="flex:1;"><div class="tl-text"><strong>${e.who}</strong> requested evidence — ${e.item}</div>
+      <div class="tl-date">${e.when} · required: ${e.confidence}</div></div>
+    </div>` : `
     <div class="tl-row"><div class="tl-dot real"></div>
       <div style="flex:1;"><div class="tl-text"><strong>${e.who}</strong> verified <strong>${e.item}</strong> — confidence: ${e.confidence}</div>
       <div class="tl-date">${e.when} · ${e.evidence ? 'photo evidence attached (demo)' : 'no photo'} ${e.comments ? '· "' + e.comments.slice(0, 60) + '"' : ''}</div></div>
@@ -2672,6 +2738,26 @@ ctRoute('#/verify', function(){
             <div class="row-sub">${it.sub} ${it.real ? '' : '<span class="dim-chip demo">DEMO</span>'}</div></div>
             <span class="score-report">Verify →</span></div>`).join('')}
       </div>
+      <div class="card">
+        <div class="card-title">Request evidence from the responsible authority</div>
+        <div style="font-size:11px;color:var(--ct-text-muted);margin-bottom:10px;">Don't just ask "is it done?" — specify exactly what proof is required. The request and its response join the audit trail.</div>
+        <p style="font-size:12.5px;font-weight:500;margin-bottom:6px;">From</p>
+        <div class="choice-row" id="ctEvFrom">
+          <div class="choice-btn selected" data-ev="from" onclick="document.querySelectorAll('[data-ev=&quot;from&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">LC1 chairman</div>
+          <div class="choice-btn" data-ev="from" onclick="document.querySelectorAll('[data-ev=&quot;from&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">LC2 parish chief</div>
+          <div class="choice-btn" data-ev="from" onclick="document.querySelectorAll('[data-ev=&quot;from&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">Facility in-charge</div>
+          <div class="choice-btn" data-ev="from" onclick="document.querySelectorAll('[data-ev=&quot;from&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">Site agent</div>
+        </div>
+        <p style="font-size:12.5px;font-weight:500;margin:12px 0 6px;">Required evidence</p>
+        <div class="choice-row" id="ctEvWhat">
+          <div class="choice-btn selected" data-ev="what" onclick="this.classList.toggle('selected')">📷 Photos of works</div>
+          <div class="choice-btn selected" data-ev="what" onclick="this.classList.toggle('selected')">✔ Completion status</div>
+          <div class="choice-btn" data-ev="what" onclick="this.classList.toggle('selected')">🧑‍🤝‍🧑 Community feedback</div>
+          <div class="choice-btn" data-ev="what" onclick="this.classList.toggle('selected')">🌿 Environmental compliance</div>
+        </div>
+        <button class="btn btn-black btn-large" style="margin-top:14px;" onclick="ctRequestEvidence()">Send evidence request</button>
+      </div>
+
       <div class="card-title">Audit history <span class="dim-chip demo">session-scoped demo</span></div>
       <div class="card">${ctVerificationLog()}</div>
     </div>`;
@@ -2770,8 +2856,265 @@ ctRoute('#/knowledge', function(){
       ${sec('indicators', 'indicators scorecard attendance water point health facility market access road quality of life', '📊', 'Development indicators',
         `<div class="row-sub" style="line-height:1.6;margin-bottom:6px;">CivicTrack's granular, non-financial signals reported from the ground:</div>` +
         CT_SCORECARD.map(r => `<div class="row"><div class="row-sub">${r.icon} ${r.label} <span style="color:var(--ct-text-muted);">(${r.prog})</span></div></div>`).join(''))}
+      ${sec('dimensions', 'representation quality of life mobilization population voters parishes education health data', '🗂️', 'How CivicTrack reads a place',
+        `<div class="row-sub" style="line-height:1.6;">Every place is read through four dimensions sharing one geography key: <strong>Representation</strong> (who leads you, verified), <strong>Quality of life</strong> (education, health, water access), <strong>Mobilization</strong> (voters, parishes, PDM reach) and <strong>NDP IV programmes</strong> (money and projects). Open any place profile to see them together.</div>`)}
+      ${sec('districtdocs', 'district development plans quarterly performance reports budget estimates templates forms', '📁', 'District plans &amp; reports',
+        `<div class="row-sub" style="line-height:1.6;">The documents behind every figure: Kayunga DLG Quarterly Performance Report FY2025/26 Q2 · Jinja District LG Performance Reports FY2024/25 Q4 and FY2025/26 Q1 · Jinja City Approved Budget Estimates FY2025/26. Full document library would be attached here. <span class="dim-chip demo">DEMO placeholder</span></div>`)}
       ${sec('policies', 'policies acts guidelines templates district plans reports budget framework circulars', '📜', 'Policies, Acts &amp; guidelines',
         `<div class="row-sub" style="line-height:1.6;">PDM guidelines, the Local Governments Act, PFMA, PPDA procurement rules and district development plans would be curated here. <span class="dim-chip demo">DEMO placeholder</span> — not yet populated in this prototype.</div>`)}
       <div class="footer-note">The Knowledge Centre never interrupts operational screens — it stays one tap away under More → Knowledge Centre.</div>
     </div>`;
 });
+
+// ===========================================================================
+// V2.1 — INTELLIGENT ASSISTANCE. Rule-based observations generated from the
+// reviewed data: notable changes, emerging risks, likely causes, NDP IV links,
+// suggested actions, recommended collaborators. Advisory, never commanding —
+// and never invented: every observation cites the data it stands on.
+// ===========================================================================
+function ctInsightsFor(subject){
+  // subject: { type:'district'|'programme'|'project', distId, prog?, proj? }
+  const dist = CT_DATA.programmeData[subject.distId];
+  if (!dist) return [];
+  const out = [];
+  const pace = dist.paceTarget;
+  const push = (icon, type, text) => out.push({ icon, type, text });
+
+  const progs = dist.dataKind === 'performance' ? dist.programmes : [];
+  const behind = progs.filter(p => (p.pctOfRevised != null ? p.pctOfRevised : p.pct) < pace);
+  const weakest = behind.slice().sort((a, b) => (a.pctOfRevised != null ? a.pctOfRevised : a.pct) - (b.pctOfRevised != null ? b.pctOfRevised : b.pct))[0];
+  const strongest = progs.slice().sort((a, b) => (b.pctOfRevised != null ? b.pctOfRevised : b.pct) - (a.pctOfRevised != null ? a.pctOfRevised : a.pct))[0];
+  const stalled = dist.projects.filter(p => p.stageStatus === 'stalled');
+  const grants = (CT_DATA.grantStreams[subject.distId] || []).filter(g => g.status === 'notreleased');
+
+  if (subject.type === 'district'){
+    if (weakest){
+      const wp = weakest.pctOfRevised != null ? weakest.pctOfRevised : weakest.pct;
+      push('📉', 'Emerging risk', `<strong>${weakest.name}</strong> is at <strong>${wp}%</strong> against a ${pace}% pace target — the widest gap in this Local Government this quarter.`);
+      const cl = ctClusterOf(weakest.name);
+      if (cl) push('🧭', 'NDP IV link', `This gap sits in the <strong>${cl.name}</strong> cluster — it drags the whole cluster's local picture, not just one vote.`);
+    }
+    if (strongest && (strongest.pctOfRevised != null ? strongest.pctOfRevised : strongest.pct) >= pace)
+      push('💪', 'Strength', `<strong>${strongest.name}</strong> is on pace (${strongest.pctOfRevised != null ? strongest.pctOfRevised : strongest.pct}%) — a strength to protect and to learn from.`);
+    if (stalled.some(p => p.confirmedPersistence))
+      push('🔁', 'Notable pattern', `<strong>${stalled.filter(p => p.confirmedPersistence).length} project(s)</strong> stayed stalled across <strong>two consecutive reports</strong> — persistence signals a systemic block, not a one-off delay.`);
+    if (stalled[0] && stalled[0].contributingCause)
+      push('🔎', 'Likely cause', `The documented cause is <strong>${stalled[0].contributingCause}</strong> — a funding-release problem, not a works problem. The fix sits with finance channels.`);
+    if (dist.localRevenuePct != null && dist.localRevenueCause)
+      push('💰', 'Likely cause', `Local revenue is at <strong>${dist.localRevenuePct}%</strong> of expectation — the report itself blames "${dist.localRevenueCause}".`);
+    if (grants.length)
+      push('⚡', 'Emerging risk', `<strong>${grants[0].name}</strong> did not release in ${dist.quarter}${grants.length > 1 ? ` — ${grants.length - 1} other named stream(s) also failed` : ''}. Downstream programmes will stall if this persists.`);
+    push('🎯', 'Suggested action', weakest
+      ? `Request the CAO's written explanation on ${weakest.name} before the next quarter — and put the stalled projects on the council agenda.`
+      : `Commission field verification of the funded projects — a budget is a promise, not a result.`);
+    const tech = (CT_DATA.technocrats[subject.distId] || [])[0];
+    const collabOffice = stalled[0]
+      ? `${ctOfficeOf(stalled[0])} for the stalled works`
+      : (weakest ? `${ctOfficeOf({ sector: weakest.name })} for the weakest programme` : 'the responsible sector offices');
+    push('🤝', 'Recommended collaborators', `${tech && tech.verified ? `<strong>${tech.name}</strong> (${tech.office})` : 'The CAO / Town Clerk'} for delivery answers; ${collabOffice}; URA/URSB for money-economy outreach.`);
+  }
+
+  if (subject.type === 'programme' && subject.prog){
+    const pn = subject.prog;
+    const hit = progs.find(p => ctNormProg(p.name) === ctNormProg(pn)
+      || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(pn));
+    const cl = ctClusterOf(pn);
+    if (hit){
+      const pct = hit.pctOfRevised != null ? hit.pctOfRevised : hit.pct;
+      if (pct < pace) push('📉', 'Emerging risk', `Running at <strong>${pct}%</strong> against a ${pace}% pace target — off-pace by ${pace - pct} points in ${dist.quarter}.`);
+      else push('💪', 'Strength', `On pace at <strong>${pct}%</strong> in ${dist.quarter} — protect the conditions making this work.`);
+      const projs = dist.projects.filter(p => ctNormProg(p.programme || '') === ctNormProg(hit.name));
+      const st = projs.filter(p => p.stageStatus === 'stalled');
+      if (st.length) push('🔎', 'Likely cause', `${st.length} of ${projs.length} tracked projects under this programme are stalled${st[0].contributingCause ? ' — documented cause: ' + st[0].contributingCause : ''}.`);
+      if (cl) push('🧭', 'NDP IV link', `One of the ${cl.programmes.length} programmes in the <strong>${cl.name}</strong> cluster.`);
+      push('🎯', 'Suggested action', pct < pace
+        ? `Ask ${ctOfficeOf(projs[0] || { sector: pn })} for a recovery plan; verify the stalled sites through the LC chain.`
+        : `Document what is working here and apply it to the off-pace programmes.`);
+    } else {
+      push('🕳️', 'Data gap', `This programme is not itemized in the reviewed ${dist.quarter} documents — it may run through national votes or await local funding. No figures are invented here.`);
+      push('🎯', 'Suggested action', `Request the district planner's mapping of national ${pn} activity in this Local Government.`);
+    }
+  }
+
+  if (subject.type === 'project' && subject.proj){
+    const p = subject.proj;
+    if (p.stageStatus === 'stalled'){
+      push('📉', 'Emerging risk', `Stalled at the <strong>${CT_JOURNEY[ctJourneyIdx(p)]}</strong> stage${p.confirmedPersistence ? ' — and confirmed stalled across <strong>two consecutive reports</strong>' : ''}. Every idle month raises cost and erodes public trust.`);
+      if (p.contributingCause) push('🔎', 'Likely cause', `Documented cause: <strong>${p.contributingCause}</strong> — a release problem to chase upward, not a site problem to watch.`);
+      push('🎯', 'Suggested action', `Escalate through ${ctOfficeOf(p)} to the CAO${p.contributingCause && /Road Fund/i.test(p.contributingCause) ? ' and raise the URF non-release with the ministry or OPM' : ''}; an LC1 ground report with photos strengthens the case.`);
+    } else if (p.stageStatus === 'complete'){
+      push('💪', 'Strength', `Reported complete. The remaining question is community validation — does it serve people as intended?`);
+      push('🎯', 'Suggested action', `Request community feedback through the LC1/LC2 and record a verification with evidence.`);
+    } else {
+      push('⏳', 'Notable status', `${p.amount ? 'Funded at ' + ctFormatUGX(p.amount) + ' — ' : ''}field state not yet confirmed. The first evidence cycle decides whether funding becomes delivery.`);
+      push('🎯', 'Suggested action', `Ask the LC1 under whose jurisdiction it lies to file a photo report; then verify upward through the chain.`);
+    }
+    push('🤝', 'Recommended collaborators', `${ctOfficeOf(p)} (responsible office); the LC1/LC2 at the site (ground truth); the CAO's office (release status).`);
+  }
+  return out;
+}
+function ctInsightCards(insights){
+  if (!insights.length) return '';
+  return `<div class="insight-stack">${insights.map(i => `
+    <div class="insight-card">
+      <span class="insight-icon">${i.icon}</span>
+      <div><div class="insight-type">${i.type}</div><div class="insight-text">${i.text}</div></div>
+    </div>`).join('')}</div>`;
+}
+
+// ===========================================================================
+// V2.1 — WORKSPACE ENGINE. Every programme, project, institution or issue
+// expands into a slide-over workspace: visual progress, narrative insights,
+// related institutions, recent activity, evidence, recommended actions.
+// One engine, section builders per subject.
+// ===========================================================================
+function ctOpenWorkspace(title, sub, sections){
+  ctCloseWorkspace();
+  const el = document.createElement('div');
+  el.className = 'sheet-overlay ws-overlay open';
+  el.id = 'ctWorkspace';
+  el.innerHTML = `
+    <div class="ws-panel">
+      <div class="ws-head">
+        <button class="ws-close" onclick="ctCloseWorkspace()">‹</button>
+        <div style="flex:1;min-width:0;"><div class="ws-title">${title}</div><div class="ws-sub">${sub}</div></div>
+      </div>
+      <div class="ws-body">
+        ${sections.map(sc => `
+          <div class="ws-section">
+            <div class="ws-sec-title">${sc.icon} ${sc.title}</div>
+            ${sc.html}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  el.addEventListener('click', function(e){ if (e.target === el) ctCloseWorkspace(); });
+  document.body.appendChild(el);
+}
+function ctCloseWorkspace(){
+  const el = document.getElementById('ctWorkspace');
+  if (el) el.remove();
+}
+
+// Workspace for a project
+function ctProjectWorkspace(i){
+  const p = (window._ctProjList || [])[i];
+  if (!p) return;
+  const s = ctSess();
+  const dist = ctSessDistrict();
+  const distId = ctDistrictIdOf(s.geoId);
+  const insights = ctInsightsFor({ type: 'project', distId, proj: p });
+  ctOpenWorkspace(p.name, `${p.sector || ''} · ${p.location || ''}${p.amount ? ' · ' + ctFormatUGX(p.amount) : ''}`, [
+    { icon: '📈', title: 'Delivery journey', html: ctJourney(p) },
+    { icon: '🧠', title: 'What CivicTrack observes', html: ctInsightCards(insights) },
+    { icon: '🏛️', title: 'Related institutions', html: `
+      <div class="row"><div class="row-title">Responsible office</div><div class="row-sub" style="text-align:right;max-width:60%;">${ctOfficeOf(p)}</div></div>
+      <div class="row"><div class="row-title">Ground truth</div><div class="row-sub" style="text-align:right;">LC1/LC2 at the site</div></div>
+      <div class="row"><div class="row-title">Delivery oversight</div><div class="row-sub" style="text-align:right;">CAO's office</div></div>` },
+    { icon: '🕘', title: 'Recent activity', html: `
+      <div class="tl-row"><div class="tl-dot real"></div><div style="flex:1;"><div class="tl-text">${dist.dataKind === 'performance' ? 'Status recorded in the ' + dist.quarter + ' performance report' : 'Funded in the FY2025/26 approved budget'}${p.statusQuote ? ': "' + p.statusQuote + '"' : ''}</div><div class="tl-date">${dist.dataKind === 'performance' ? dist.quarter : 'FY2025/26'} · reviewed document</div></div></div>
+      <div class="tl-row"><div class="tl-dot demo"></div><div style="flex:1;"><div class="tl-text">No field evidence filed yet</div><div class="tl-date"><span class="dim-chip demo">DEMO</span> first report pending</div></div></div>` },
+    { icon: '📎', title: 'Evidence', html: `
+      <div style="font-size:11.5px;color:var(--ct-text-muted);line-height:1.6;">No photos, voice notes or inspection reports attached yet. Field evidence flows in through guided collection and verification.</div>` },
+    { icon: '🎯', title: 'Recommended actions', html: `
+      <div class="action-chip-row">
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/verify'"><span class="action-icon">✅</span>Verify</button>
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/collect'"><span class="action-icon">📋</span>Collect evidence</button>
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/coordination'"><span class="action-icon">💬</span>Coordinate</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Escalated to OPM')"><span class="action-icon">⚡</span>Escalate</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--ct-text-muted);margin-top:6px;"><span class="dim-chip demo" style="margin-right:4px;">DEMO</span>${ctOfficeReleaseNote(dist, p)}</div>` }
+  ]);
+}
+
+// Workspace for a programme (from #/programmes)
+function ctProgrammeWorkspace(distId, progName){
+  const dist = CT_DATA.programmeData[distId];
+  const g = CT_DATA.geo[distId];
+  const cl = ctClusterOf(progName);
+  const hit = dist.dataKind === 'performance'
+    ? (dist.programmes || []).find(p => ctNormProg(p.name) === ctNormProg(progName)
+        || ctNormProg(CT_DATA.ndp4.aliases[ctNormProg(p.name)] || '') === ctNormProg(progName))
+    : null;
+  const insights = ctInsightsFor({ type: 'programme', distId, prog: progName });
+  const projs = hit
+    ? dist.projects.filter(p => ctNormProg(p.programme || '') === ctNormProg(hit.name))
+    : dist.projects.filter(p => { const cp = ctCityProg(p); return cp && ctNormProg(cp) === ctNormProg(progName); });
+  window._ctProjList = projs;
+  const progressHtml = hit
+    ? (() => { const pct = hit.pctOfRevised != null ? hit.pctOfRevised : hit.pct;
+        return `<div style="display:flex;align-items:center;gap:14px;">${ctRing(pct, { label: 'released', size: 76, color: pct >= dist.paceTarget ? 'var(--ct-green)' : '#E8A100' })}
+          <div style="font-size:11.5px;color:var(--ct-text-secondary);line-height:1.6;">
+            <strong>${pct}%</strong> of the revised budget released by end of ${dist.quarter} (pace target <strong>${dist.paceTarget}%</strong>).<br>
+            Approved: <strong>${ctFormatUGX(hit.approved)}</strong> · Revised: <strong>${ctFormatUGX(hit.revisedApproved)}</strong> · Received: <strong>${ctFormatUGX(hit.received)}</strong>
+          </div></div>`; })()
+    : (projs.length
+      ? `<div style="font-size:11.5px;color:var(--ct-text-secondary);line-height:1.6;"><strong>${projs.length} funded project(s)</strong> totalling <strong>${ctFormatUGX(projs.reduce((a, p) => a + (p.amount || 0), 0))}</strong> in the FY2025/26 budget — funded amounts, not % released.</div>`
+      : `<div style="font-size:11.5px;color:var(--ct-text-muted);line-height:1.6;">Not itemized in the reviewed documents for ${g.shortName} — shown as an honest gap, never invented.</div>`);
+  ctOpenWorkspace(progName, (cl ? cl.icon + ' ' + cl.name + ' cluster · ' : '') + g.name, [
+    { icon: '📈', title: 'Progress', html: progressHtml },
+    { icon: '🧠', title: 'What CivicTrack observes', html: ctInsightCards(insights) },
+    { icon: '🏗️', title: 'Projects under this programme', html: projs.length
+      ? `<div class="card" style="margin:0;box-shadow:none;padding:0;">${projs.map((p, i) => `
+          <div class="row" style="cursor:pointer;" onclick="ctProjectWorkspace(${i})">
+            <div style="min-width:0;"><div class="row-title" style="font-size:12.5px;">${p.name}</div>
+            <div class="row-sub">${p.location || ''}</div></div>${ctStatusPill(p.stageStatus)}</div>`).join('')}</div>`
+      : `<div style="font-size:11.5px;color:var(--ct-text-muted);">No projects itemized under this programme in the reviewed documents.</div>` },
+    { icon: '🏛️', title: 'Related institutions', html: `
+      <div class="row"><div class="row-title">Sector office</div><div class="row-sub" style="text-align:right;max-width:60%;">${ctOfficeOf(projs[0] || { sector: progName })}</div></div>
+      <div class="row"><div class="row-title">Delivery oversight</div><div class="row-sub" style="text-align:right;">CAO's office</div></div>
+      <div class="row"><div class="row-title">Political oversight</div><div class="row-sub" style="text-align:right;">District council & your office</div></div>` },
+    { icon: '🎯', title: 'Recommended actions', html: `
+      <div class="action-chip-row">
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/coordination'"><span class="action-icon">💬</span>Coordinate</button>
+        <button class="action-chip" onclick="ctCloseWorkspace();location.hash='#/collect'"><span class="action-icon">📋</span>Collect evidence</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Explanation requested from CAO')"><span class="action-icon">📄</span>Request CAO explanation</button>
+        <button class="action-chip" onclick="ctDemoModeToast('Escalated to OPM')"><span class="action-icon">⚡</span>Escalate</button>
+      </div>` }
+  ]);
+}
+
+// ===========================================================================
+// V2.1 — GUIDED MONITORING. After choosing what they're reporting and its
+// status, the leader answers ADAPTIVE questions for that asset type — a road
+// is asked about surface and drainage, a school about attendance and staffing.
+// Evidence (photo / voice / GPS / timestamp) completes the guided flow.
+// ===========================================================================
+const CT_GUIDED = {
+  roads: [['Surface condition', 'Sound', 'Rough', 'Failed'], ['Drainage', 'Working', 'Blocked', 'None'], ['Passable right now?', 'Yes', 'With difficulty', 'No']],
+  education: [['Pupil attendance', 'Full', 'Partial', 'Low'], ['Learning materials', 'Adequate', 'Short', 'None'], ['Teachers present', 'All', 'Some', 'Few']],
+  health: [['Staff on duty', 'Full team', 'Some', 'None seen'], ['Essential drugs', 'In stock', 'Stock-outs', 'None'], ['Power & water', 'Working', 'Intermittent', 'None']],
+  water: [['Source functional?', 'Yes', 'Intermittent', 'No'], ['Queue time', '<15 min', '15–45 min', '>45 min'], ['Water clarity', 'Clear', 'Cloudy', 'Poor']],
+  pdm: [['Group met this month?', 'Yes', 'No', 'Not sure'], ['Funds reached members?', 'Yes', 'Partial', 'No'], ['Enterprise focus', 'Agriculture', 'Trade', 'Other']],
+  market: [['Stall occupancy', 'Full', 'Partial', 'Sparse'], ['Fees collected?', 'Yes', 'Partial', 'No'], ['Vendor mood', 'Positive', 'Mixed', 'Frustrated']],
+  community: [['Attendance', '30+', '10–30', 'Under 10'], ['Decisions minuted?', 'Yes', 'No'], ['Top priority raised', 'Services', 'Livelihood', 'Security']],
+  environment: [['Encroachment seen', 'None', 'Some', 'Severe'], ['Vegetation cover', 'Intact', 'Thinning', 'Bare'], ['Action taken', 'Reported', 'Discussed', 'None']],
+  money: [['Traders with TIN', 'Most', 'Some', 'Few'], ['URSB registrations', 'Common', 'Some', 'None'], ['Mobile-money use', 'Widespread', 'Growing', 'Rare']]
+};
+function ctGuidedQuestions(aspectId){
+  const qs = CT_GUIDED[aspectId];
+  if (!qs) return '';
+  return `<div id="ctGuided" class="guided-block" style="display:none;">
+    <p style="font-size:13px;font-weight:500;margin-bottom:4px;">Guided questions <span class="dim-chip">adaptive to this asset</span></p>
+    <p style="font-size:10.5px;color:var(--ct-text-muted);margin-bottom:10px;">The questions change with what you are monitoring — answer what you saw; skip what you didn't.</p>
+    ${qs.map((q, qi) => `
+      <div class="guided-q">
+        <div class="guided-q-label">${q[0]}</div>
+        <div class="choice-row">
+          ${q.slice(1).map((opt, oi) => `<div class="choice-btn${oi === 0 ? ' selected' : ''}" data-q="${qi}" onclick="document.querySelectorAll('[data-q=&quot;${qi}&quot;]').forEach(b=>b.classList.remove('selected'));this.classList.add('selected')">${opt}</div>`).join('')}
+        </div>
+      </div>`).join('')}
+    <div class="photo-box" style="height:80px;margin-top:10px;" onclick="ctDemoModeToast('Voice note recorded')"><div class="icon">🎙️</div>Attach a voice note (demo)</div>
+  </div>`;
+}
+
+function ctRequestEvidence(){
+  const s = ctSess();
+  const from = (document.querySelector('[data-ev="from"].selected') || {}).textContent || 'LC1 chairman';
+  const what = Array.from(document.querySelectorAll('[data-ev="what"].selected')).map(b => b.textContent.trim());
+  if (!what.length){ ctDemoModeToast('Select at least one required evidence type'); return; }
+  const log = JSON.parse(sessionStorage.getItem('ct_verifications') || '[]');
+  log.unshift({ request: true, who: s.label || CT_ROLES[s.role].label, item: 'Evidence requested from ' + from.trim(), when: new Date().toISOString().slice(0, 16).replace('T', ' '), confidence: what.join(' · '), comments: '', evidence: false });
+  sessionStorage.setItem('ct_verifications', JSON.stringify(log.slice(0, 20)));
+  ctDemoModeToast('Evidence request sent to ' + from.trim());
+  setTimeout(() => ctRender(), 600);
+}
